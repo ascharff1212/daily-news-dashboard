@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alan's Daily News Dashboard</title>
+  <meta name="description" content="A professional daily news and business intelligence briefing for investors and financial professionals.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       THEME TOKENS
+       ========================================================================= */
+    :root {
+      --bg:            #0a0e1a;
+      --bg-elev:       #131826;
+      --bg-elev-2:     #1a2032;
+      --border:        #1e2638;
+      --border-strong: #2a3450;
+      --text:          #e4e7eb;
+      --text-2:        #a3acbf;
+      --text-3:        #6b7588;
+      --accent:        #4f9cf9;
+      --accent-2:      #00d4aa;
+      --pos:           #10b981;
+      --neg:           #ef4444;
+      --neu:           #6b7280;
+      --warn:          #f59e0b;
+      --breaking:      #f43f5e;
+      --shadow:        0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
+      --radius:        8px;
+      --radius-sm:     4px;
+      --mono:          'JetBrains Mono', Menlo, Consolas, monospace;
+    }
+    html[data-theme="light"] {
+      --bg:            #f5f7fa;
+      --bg-elev:       #ffffff;
+      --bg-elev-2:     #fafbfc;
+      --border:        #e5e7eb;
+      --border-strong: #cbd2dd;
+      --text:          #111827;
+      --text-2:        #4b5563;
+      --text-3:        #6b7280;
+      --accent:        #2563eb;
+      --accent-2:      #059669;
+      --pos:           #059669;
+      --neg:           #dc2626;
+      --neu:           #6b7280;
+      --warn:          #d97706;
+      --breaking:      #e11d48;
+      --shadow:        0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    /* =========================================================================
+       RESET / BASE
+       ========================================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; cursor: pointer; }
+    h1, h2, h3, h4 { margin: 0; font-weight: 600; }
+    .mono { font-family: var(--mono); }
+
+    /* =========================================================================
+       TOP BAR
+       ========================================================================= */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--bg-elev);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      width: 30px; height: 30px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 14px;
+    }
+    .brand-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-sub { font-size: 11px; color: var(--text-3); font-family: var(--mono); }
+
+    .topbar-spacer { flex: 1; }
+    .search-wrap { position: relative; min-width: 260px; }
+    .search-wrap input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 7px 12px 7px 32px;
+      font-size: 13px;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap::before {
+      content: '🔍'; position: absolute; left: 9px; top: 50%;
+      transform: translateY(-50%); font-size: 12px; opacity: .6;
+    }
+
+    .icon-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      transition: all .15s;
+    }
+    .icon-btn:hover { color: var(--text); border-color: var(--border-strong); }
+    .icon-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .icon-btn.primary:hover { filter: brightness(1.1); }
+
+    .updated-stamp {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+    }
+    .updated-stamp .live-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--pos); margin-right: 5px;
+      box-shadow: 0 0 6px var(--pos);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    /* =========================================================================
+       SECTION NAV (tabs)
+       ========================================================================= */
+    .section-nav {
+      position: sticky; top: 53px; z-index: 49;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex; gap: 4px; overflow-x: auto;
+    }
+    .section-nav a {
+      padding: 10px 14px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-2);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .section-nav a:hover { color: var(--text); text-decoration: none; }
+    .section-nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* =========================================================================
+       MODE BANNER
+       ========================================================================= */
+    .mode-banner {
+      padding: 8px 20px;
+      background: var(--bg-elev-2);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text-2);
+    }
+    .mode-pill {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      background: var(--warn); color: #000;
+    }
+    .mode-pill.live { background: var(--pos); color: #fff; }
+    .mode-pill.hybrid { background: var(--accent); color: #fff; }
+
+    /* =========================================================================
+       LAYOUT
+       ========================================================================= */
+    .container {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      max-width: 1600px;
+      margin: 0 auto;
+      gap: 20px;
+      padding: 20px;
+    }
+    .sidebar {
+      position: sticky; top: 140px;
+      align-self: start;
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+    }
+    .content { min-width: 0; }
+
+    @media (max-width: 1100px) {
+      .container { grid-template-columns: 1fr; }
+      .sidebar { position: static; max-height: none; }
+    }
+
+    /* =========================================================================
+       SIDEBAR
+       ========================================================================= */
+    .filter-group {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .filter-group h4 {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      color: var(--text-3); letter-spacing: 0.05em; margin-bottom: 10px;
+    }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      color: var(--text-2);
+      background: transparent;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .chip:hover { color: var(--text); border-color: var(--border-strong); }
+    .chip.active {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .range-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .range-row input[type=range] { flex: 1; }
+    .range-row .val { font-family: var(--mono); font-size: 11px; color: var(--text-2); min-width: 24px; text-align: right; }
+
+    .mode-toggle { display: flex; gap: 0; }
+    .mode-toggle button {
+      flex: 1; padding: 6px; background: var(--bg);
+      border: 1px solid var(--border); color: var(--text-2);
+      font-size: 11px; font-weight: 500;
+    }
+    .mode-toggle button:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .mode-toggle button:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .mode-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* =========================================================================
+       SECTIONS / CARDS
+       ========================================================================= */
+    section.block { margin-bottom: 32px; scroll-margin-top: 140px; }
+    .block-header {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 8px; margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .block-header h2 {
+      font-size: 16px; letter-spacing: -0.01em;
+    }
+    .block-header .badge {
+      font-family: var(--mono); font-size: 10px;
+      padding: 2px 6px; background: var(--bg-elev-2);
+      border-radius: 3px; color: var(--text-3);
+    }
+    .block-header .actions { margin-left: auto; display: flex; gap: 6px; }
+    .collapse-btn {
+      background: none; border: none; color: var(--text-3);
+      font-size: 14px; padding: 0 4px;
+    }
+
+    .card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      transition: border-color .12s;
+    }
+    .card:hover { border-color: var(--border-strong); }
+
+    .card-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    }
+
+    .card-head {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .card-head h3 { font-size: 14px; font-weight: 600; line-height: 1.35; flex: 1; }
+    .card-meta {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      font-size: 11px; color: var(--text-3);
+      margin-bottom: 8px; font-family: var(--mono);
+    }
+    .card-meta .src { color: var(--accent); }
+    .card-body { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+    .why-matters {
+      font-size: 12px; color: var(--text);
+      padding: 8px 10px; background: var(--bg-elev-2);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 4px 4px 0; margin-top: 6px;
+    }
+    .why-matters strong { color: var(--accent); }
+    .card-footer {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+      align-items: center;
+    }
+
+    .tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 3px;
+      font-family: var(--mono); font-weight: 500;
+    }
+    .tag-cat   { background: var(--bg-elev-2); color: var(--text-2); }
+    .tag-pos   { background: rgba(16,185,129,0.15); color: var(--pos); }
+    .tag-neg   { background: rgba(239,68,68,0.15);  color: var(--neg); }
+    .tag-neu   { background: rgba(107,114,128,0.18); color: var(--text-2); }
+    .tag-mixed { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .tag-mkt   { background: rgba(79,156,249,0.18); color: var(--accent); }
+    .tag-breaking { background: var(--breaking); color: #fff; }
+    .tag-urg {
+      font-family: var(--mono); font-weight: 600;
+      padding: 2px 7px; border-radius: 3px;
+    }
+    .tag-fav { cursor: pointer; }
+
+    /* =========================================================================
+       BRIEFING (top section)
+       ========================================================================= */
+    .briefing {
+      background: linear-gradient(180deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .briefing h2 { font-size: 17px; margin-bottom: 4px; }
+    .briefing .briefing-date { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+    .briefing-grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .briefing-block h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--accent); margin-bottom: 8px;
+    }
+    .briefing-block ul { margin: 0; padding-left: 18px; }
+    .briefing-block li { margin-bottom: 6px; font-size: 13px; color: var(--text); }
+    .briefing-block li .ticker { font-family: var(--mono); color: var(--accent-2); font-weight: 600; }
+    .briefing-outlook {
+      grid-column: 1 / -1;
+      padding: 12px 14px; background: var(--bg);
+      border-radius: var(--radius-sm); border-left: 3px solid var(--accent-2);
+      font-size: 13px; line-height: 1.55;
+    }
+
+    /* =========================================================================
+       MARKET SNAPSHOT TABLE
+       ========================================================================= */
+    .snapshot {
+      display: grid; gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    .snap-cell {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+    .snap-cell .lbl { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+    .snap-cell .val { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+    .snap-cell .chg { font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+    .chg.up   { color: var(--pos); }
+    .chg.down { color: var(--neg); }
+    .chg.flat { color: var(--text-3); }
+
+    /* =========================================================================
+       SECTOR HEATMAP
+       ========================================================================= */
+    .heatmap {
+      display: grid; gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    .sector-tile {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform .12s;
+    }
+    .sector-tile:hover { transform: translateY(-1px); }
+    .sector-tile .name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .sector-tile .summary { font-size: 11px; opacity: .85; }
+    .sector-tile[data-sent="bullish"]  { background: rgba(16,185,129,0.18); border-color: rgba(16,185,129,0.35); }
+    .sector-tile[data-sent="bearish"]  { background: rgba(239,68,68,0.18);  border-color: rgba(239,68,68,0.35); }
+    .sector-tile[data-sent="neutral"]  { background: var(--bg-elev); }
+    .sector-tile[data-sent="mixed"]    { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); }
+
+    /* =========================================================================
+       CALENDAR TABLES
+       ========================================================================= */
+    table.cal {
+      width: 100%; border-collapse: collapse;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-size: 12px;
+    }
+    table.cal th, table.cal td {
+      padding: 8px 10px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    table.cal th {
+      background: var(--bg-elev-2);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-3); font-weight: 600;
+    }
+    table.cal tr:last-child td { border-bottom: none; }
+    table.cal td.mono { font-family: var(--mono); color: var(--text); }
+
+    /* =========================================================================
+       WATCHLIST
+       ========================================================================= */
+    .watchlist-controls {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .watchlist-controls input {
+      flex: 1; min-width: 180px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--radius-sm);
+      padding: 6px 10px; font-size: 12px;
+    }
+    .watchlist-category {
+      margin-bottom: 14px;
+    }
+    .watchlist-category h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-3); margin-bottom: 8px;
+    }
+    .ticker-grid {
+      display: grid; gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    .ticker-tile {
+      background: var(--bg-elev); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 10px;
+      font-family: var(--mono); font-size: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: all .12s;
+    }
+    .ticker-tile:hover { border-color: var(--accent); }
+    .ticker-tile.has-news::after {
+      content: '●'; color: var(--warn); margin-left: 4px;
+    }
+    .ticker-tile .remove {
+      opacity: 0; color: var(--neg); font-size: 14px; padding: 0 4px;
+    }
+    .ticker-tile:hover .remove { opacity: 0.7; }
+    .ticker-tile .remove:hover { opacity: 1; }
+
+    .alert-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--warn);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .alert-card .alert-head {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; margin-bottom: 4px;
+    }
+    .alert-card .alert-head .ticker {
+      font-family: var(--mono); font-weight: 600; color: var(--accent-2);
+    }
+    .alert-card .alert-body { font-size: 12px; color: var(--text-2); }
+    .alert-card .alert-why { font-size: 11px; color: var(--text); margin-top: 4px; }
+
+    /* =========================================================================
+       OPPORTUNITY
+       ========================================================================= */
+    .opp-card {
+      background: linear-gradient(180deg, var(--bg-elev) 0%, var(--bg-elev-2) 100%);
+      border: 1px solid var(--accent-2);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .opp-card h3 { font-size: 14px; margin-bottom: 4px; }
+    .opp-card .opp-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .opp-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-top: 10px; }
+    .opp-grid h5 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); margin-bottom: 4px; }
+    .opp-grid p { margin: 0; font-size: 12px; }
+    .opp-quiet { padding: 20px; text-align: center; color: var(--text-3); font-style: italic; }
+
+    /* =========================================================================
+       MISC
+       ========================================================================= */
+    .empty { padding: 30px; text-align: center; color: var(--text-3); font-style: italic; }
+    .footer {
+      max-width: 1600px; margin: 0 auto;
+      padding: 20px; text-align: center;
+      color: var(--text-3); font-size: 11px;
+      border-top: 1px solid var(--border);
+    }
+    .disclaimer {
+      background: var(--bg-elev-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 14px; margin: 20px 0;
+      font-size: 11px; color: var(--text-3); line-height: 1.5;
+    }
+    .ticker-strip {
+      background: var(--bg-elev-2); border-bottom: 1px solid var(--border);
+      padding: 6px 0; overflow: hidden;
+      font-family: var(--mono); font-size: 11px;
+      white-space: nowrap;
+    }
+    .ticker-strip .strip-inner { display: inline-block; animation: scroll 60s linear infinite; }
+    .ticker-strip .item { display: inline-block; padding: 0 18px; color: var(--text-2); }
+    .ticker-strip .item .deal { color: var(--accent-2); }
+    @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    @media print {
+      .topbar, .section-nav, .sidebar, .ticker-strip, .mode-banner, .icon-btn { display: none !important; }
+      .container { grid-template-columns: 1fr; padding: 0; }
+      body { background: #fff; color: #000; }
+      .card, .briefing, .filter-group { box-shadow: none; border: 1px solid #ccc; background: #fff; color: #000; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- =======================================================================
+     TOP BAR
+     ======================================================================= -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">AS</div>
+    <div>
+      <div class="brand-title">Alan's Daily News Dashboard</div>
+      <div class="brand-sub" id="brand-date">—</div>
+    </div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="search-wrap">
+    <input id="global-search" type="text" placeholder="Search headlines, tickers, sectors…" />
+  </div>
+  <span class="updated-stamp"><span class="live-dot"></span>Updated <span id="updated-time">—</span></span>
+  <button class="icon-btn" id="btn-refresh" title="Refresh">⟳ Refresh</button>
+  <button class="icon-btn" id="btn-theme" title="Toggle theme">◐</button>
+  <button class="icon-btn" id="btn-print" title="Export PDF">⤓ PDF</button>
+  <button class="icon-btn" id="btn-copy" title="Copy briefing">⎘ Copy</button>
+</header>
+
+<!-- =======================================================================
+     SECTION NAV
+     ======================================================================= -->
+<nav class="section-nav">
+  <a href="#briefing" class="active">Morning Briefing</a>
+  <a href="#market-snapshot">Markets</a>
+  <a href="#sector-heatmap">Sectors</a>
+  <a href="#headlines">Headlines</a>
+  <a href="#colorado">Colorado</a>
+  <a href="#national">National</a>
+  <a href="#business">Business</a>
+  <a href="#earnings">Earnings</a>
+  <a href="#deals">Deals</a>
+  <a href="#watchlist">Watchlist</a>
+  <a href="#opportunity">Opportunities</a>
+</nav>
+
+<!-- =======================================================================
+     MODE BANNER
+     ======================================================================= -->
+<div class="mode-banner">
+  <span class="mode-pill" id="mode-pill">DEMO</span>
+  <span id="mode-msg">Sample data shown. To enable live data, see <code>API_SETUP.md</code> and edit <code>CONFIG.apiKeys</code> in this file.</span>
+  <div style="margin-left:auto" class="mode-toggle">
+    <button data-mode="demo"   class="active">Demo</button>
+    <button data-mode="hybrid">Hybrid</button>
+    <button data-mode="live">Live</button>
+  </div>
+</div>
+
+<!-- =======================================================================
+     DEAL TICKER STRIP
+     ======================================================================= -->
+<div class="ticker-strip"><div class="strip-inner" id="deal-strip">—</div></div>
+
+<!-- =======================================================================
+     MAIN GRID
+     ======================================================================= -->
+<main class="container">
+
+  <!-- SIDEBAR ============================================================= -->
+  <aside class="sidebar">
+    <div class="filter-group">
+      <h4>Auto-Refresh</h4>
+      <div class="mode-toggle" id="autoref-toggle">
+        <button data-ref="0" class="active">Off</button>
+        <button data-ref="300000">5m</button>
+        <button data-ref="600000">10m</button>
+        <button data-ref="1800000">30m</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h4>Sentiment</h4>
+      <div class="filter-row" id="filter-sentiment">
+        <button class="chip active" data-sent="all">All</button>
+        <button class="chip" data-sent="positive">Positive</button>
+        <button class="chip" data-sent="negative">Negative</button>
+        <button class="chip" data-sent="neutral">Neutral</button>
+        <button class="chip" data-sent="mixed">Mixed</button>
+        <button class="chip" data-sent="market-sensitive">Mkt-sensitive</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h4>Min Urgency</h4>
+      <div class="range-row">
+        <input type="range" id="filter-urgency" min="1" max="10" value="1" />
+        <span class="val" id="urgency-val">1</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h4>Sectors</h4>
+      <div class="filter-row" id="filter-sector">
+        <button class="chip active" data-sec="all">All</button>
+        <button class="chip" data-sec="Technology">Tech</button>
+        <button class="chip" data-sec="Healthcare">Health</button>
+        <button class="chip" data-sec="Industrials">Indust</button>
+        <button class="chip" data-sec="Financials">Fin</button>
+        <button class="chip" data-sec="Consumer Staples">Staples</button>
+        <button class="chip" data-sec="Consumer Discretionary">Disc</button>
+        <button class="chip" data-sec="Utilities">Util</button>
+        <button class="chip" data-sec="Materials">Mat</button>
+        <button class="chip" data-sec="Real Estate">RE</button>
+        <button class="chip" data-sec="Communication Services">Comm</button>
+        <button class="chip" data-sec="Energy">Energy</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h4>Watchlist Filter</h4>
+      <div class="filter-row" id="filter-watchlist">
+        <button class="chip" data-wl="only">Only my watchlist</button>
+        <button class="chip" data-wl="favorites">Favorites only</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <h4>Display</h4>
+      <div class="filter-row">
+        <button class="chip" id="btn-collapse-all">Collapse all</button>
+        <button class="chip" id="btn-expand-all">Expand all</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT ============================================================= -->
+  <div class="content">
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      <strong>Disclaimer:</strong> This dashboard is for research and informational purposes only. It is not personalized
+      investment advice, a recommendation to buy or sell any security, or a solicitation of any kind. Sentiment, urgency,
+      and "Why it matters" notes are model-generated heuristics — always verify with the original source before acting.
+    </div>
+
+    <!-- ===== BRIEFING ===== -->
+    <section class="block" id="briefing">
+      <div class="briefing">
+        <h2>Daily Morning Briefing</h2>
+        <div class="briefing-date" id="briefing-date">—</div>
+        <div class="briefing-grid" id="briefing-grid"></div>
+      </div>
+    </section>
+
+    <!-- ===== MARKET SNAPSHOT ===== -->
+    <section class="block" id="market-snapshot">
+      <div class="block-header">
+        <h2>Market Snapshot</h2>
+        <span class="badge" id="snapshot-stamp">Pre-market</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="snapshot-body">▾</button></div>
+      </div>
+      <div id="snapshot-body"><div class="snapshot" id="snapshot"></div></div>
+    </section>
+
+    <!-- ===== SECTOR HEATMAP ===== -->
+    <section class="block" id="sector-heatmap">
+      <div class="block-header">
+        <h2>Sector Heatmap</h2>
+        <span class="badge">News-flow sentiment, 24h</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="heatmap-body">▾</button></div>
+      </div>
+      <div id="heatmap-body"><div class="heatmap" id="heatmap"></div></div>
+    </section>
+
+    <!-- ===== HEADLINES ===== -->
+    <section class="block" id="headlines">
+      <div class="block-header">
+        <h2>General Headlines</h2>
+        <span class="badge" id="headlines-count">0</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="headlines-body">▾</button></div>
+      </div>
+      <div id="headlines-body"><div class="card-grid" id="headlines-grid"></div></div>
+    </section>
+
+    <!-- ===== COLORADO ===== -->
+    <section class="block" id="colorado">
+      <div class="block-header">
+        <h2>Colorado News</h2>
+        <span class="badge">Denver • Boulder Co. • Longmont • Niwot</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="colorado-body">▾</button></div>
+      </div>
+      <div id="colorado-body"><div class="card-grid" id="colorado-grid"></div></div>
+    </section>
+
+    <!-- ===== NATIONAL ===== -->
+    <section class="block" id="national">
+      <div class="block-header">
+        <h2>National News</h2>
+        <span class="badge">U.S. politics, policy, regulation</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="national-body">▾</button></div>
+      </div>
+      <div id="national-body"><div class="card-grid" id="national-grid"></div></div>
+    </section>
+
+    <!-- ===== BUSINESS — MACRO ===== -->
+    <section class="block" id="business">
+      <div class="block-header">
+        <h2>Business — Economy &amp; Macro</h2>
+        <span class="badge">Inflation • Jobs • Rates • Fed</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="macro-body">▾</button></div>
+      </div>
+      <div id="macro-body"><div class="card-grid" id="macro-grid"></div></div>
+    </section>
+
+    <!-- ===== ECONOMIC CALENDAR ===== -->
+    <section class="block" id="econ-cal">
+      <div class="block-header">
+        <h2>Upcoming Economic Reports</h2>
+        <span class="badge">Next 10 releases</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="econ-body">▾</button></div>
+      </div>
+      <div id="econ-body"></div>
+    </section>
+
+    <!-- ===== EARNINGS ===== -->
+    <section class="block" id="earnings">
+      <div class="block-header">
+        <h2>S&amp;P 500 Earnings &amp; Estimates</h2>
+        <span class="badge">Reports • revisions • guidance</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="earnings-body">▾</button></div>
+      </div>
+      <div id="earnings-body"></div>
+    </section>
+
+    <!-- ===== DEALS ===== -->
+    <section class="block" id="deals">
+      <div class="block-header">
+        <h2>Deals, M&amp;A, IPOs &amp; Corporate Actions</h2>
+        <span class="badge">Today's deal flow</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="deals-body">▾</button></div>
+      </div>
+      <div id="deals-body"><div class="card-grid" id="deals-grid"></div></div>
+    </section>
+
+    <!-- ===== SECTOR DEEP DIVE ===== -->
+    <section class="block" id="sectors">
+      <div class="block-header">
+        <h2>S&amp;P 500 Sector News</h2>
+        <span class="badge">11 sectors • drivers • sentiment</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="sectors-body">▾</button></div>
+      </div>
+      <div id="sectors-body"></div>
+    </section>
+
+    <!-- ===== WATCHLIST ===== -->
+    <section class="block" id="watchlist">
+      <div class="block-header">
+        <h2>My Watchlist</h2>
+        <span class="badge" id="wl-count">—</span>
+        <div class="actions">
+          <button class="icon-btn" id="wl-reset">Reset to default</button>
+          <button class="collapse-btn" data-toggle="wl-body">▾</button>
+        </div>
+      </div>
+      <div id="wl-body">
+        <div class="watchlist-controls">
+          <input id="wl-add" type="text" placeholder="Add ticker or fund symbol (e.g., NVDA, BSCQ, OAKMX)…" />
+          <button class="icon-btn primary" id="wl-add-btn">Add</button>
+        </div>
+
+        <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin:14px 0 8px">Watchlist Alerts (ranked)</h4>
+        <div id="wl-alerts"></div>
+
+        <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin:18px 0 8px">Watchlist by Category</h4>
+        <div id="wl-categories"></div>
+      </div>
+    </section>
+
+    <!-- ===== OPPORTUNITY ===== -->
+    <section class="block" id="opportunity">
+      <div class="block-header">
+        <h2>Possible Market Opportunity</h2>
+        <span class="badge">Research ideas — not advice</span>
+        <div class="actions"><button class="collapse-btn" data-toggle="opp-body">▾</button></div>
+      </div>
+      <div id="opp-body"></div>
+    </section>
+
+    <div class="disclaimer">
+      <strong>Important:</strong> The "Possible Market Opportunity" section flags ideas worth further research only.
+      It does not recommend specific trades. Always conduct independent due diligence and consult a qualified financial
+      advisor before making investment decisions. Past performance is not indicative of future results.
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  Alan's Daily News Dashboard • Built <span id="build-date">—</span> • Research tool, not investment advice.
+</footer>
+
+<!-- =========================================================================
+     SCRIPT
+     ========================================================================= -->
+<script>
+/* =============================================================================
+   CONFIG — edit this section to wire live data
+   ============================================================================= */
+const CONFIG = {
+  /* Mode: 'demo' = sample data, 'live' = APIs only, 'hybrid' = APIs with sample fallback */
+  mode: 'demo',
+
+  /* Refresh interval in ms (0 = manual only). Sidebar overrides this. */
+  refreshIntervalMs: 0,
+
+  /* API keys — DO NOT commit real keys to a public repo.
+     For production, proxy these through a backend (Node/Express, Cloudflare Worker,
+     Vercel/Netlify Function) and read from env vars on the server side.
+     For local/private use, you can put keys here directly, but be aware they will
+     be visible to anyone who views this file's source. */
+  apiKeys: {
+    newsapi:         '',  // https://newsapi.org             (general headlines)
+    gnews:           '',  // https://gnews.io                (general headlines, regional)
+    finnhub:         '',  // https://finnhub.io              (market data, earnings, news)
+    fmp:             '',  // https://financialmodelingprep.com (econ calendar, earnings, fundamentals)
+    alphavantage:    '',  // https://www.alphavantage.co     (market data, fundamentals)
+    polygon:         '',  // https://polygon.io              (market data, news)
+    marketaux:       '',  // https://www.marketaux.com       (business news + sentiment)
+    tradingeconomics:'',  // https://tradingeconomics.com    (economic calendar)
+    benzinga:        '',  // https://www.benzinga.com        (deal/earnings news)
+  },
+
+  /* API endpoints — overrideable.
+     Each renderer below has a TODO marker showing where to wire the live call. */
+  endpoints: {
+    headlinesUS:    (key) => `https://newsapi.org/v2/top-headlines?country=us&apiKey=${key}`,
+    headlinesBiz:   (key) => `https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=${key}`,
+    coloradoNews:   (key) => `https://newsapi.org/v2/everything?q=Colorado+OR+Denver+OR+Boulder+OR+Longmont&sortBy=publishedAt&apiKey=${key}`,
+    econCalendar:   (key) => `https://financialmodelingprep.com/api/v3/economic_calendar?apikey=${key}`,
+    earningsCal:    (key) => `https://financialmodelingprep.com/api/v3/earning_calendar?apikey=${key}`,
+    marketQuote:    (sym, key) => `https://finnhub.io/api/v1/quote?symbol=${sym}&token=${key}`,
+    companyNews:    (sym, key) => `https://finnhub.io/api/v1/company-news?symbol=${sym}&token=${key}`,
+  },
+
+  /* Ranking weights — adjustable per the user's spec.
+     Business news ranking: 30/20/15/15/10/10 */
+  rankBusiness: { marketImpact:.30, econImportance:.20, earningsRelevance:.15, sectorRelevance:.15, recency:.10, sourceCredibility:.10 },
+  /* Watchlist alert ranking: 30/20/15/15/10/10 */
+  rankWatchlist: { directImpact:.30, marketMoving:.20, earningsRevImpact:.15, sectorAssetClass:.15, recency:.10, sourceCredibility:.10 },
+};
+
+/* =============================================================================
+   DEFAULT WATCHLIST — Alan's starting set, pre-categorized
+   ============================================================================= */
+const DEFAULT_WATCHLIST = {
+  'Individual Stocks': [
+    'AAPL','AMZN','ANET','APH','AVGO','BAC','BE','BK','BLK','BRK.B','C','CI','COST','CTVA','EMR','ETR','GE','GEV',
+    'GM','GOOGL','GS','IBM','ISRG','JCI','JPM','KMI','KR','LIN','LLY','LRCX','MAR','MCK','META','MRK','MS','MSFT',
+    'NFLX','NVDA','NVO','PLTR','PPL','RTX','RXST','SHEL','SPG','SYK','TJX','TMUS','VLO','WELL','WMB','WMT'
+  ],
+  'Bond / Defined Maturity ETFs': ['BSCQ','BSCR','BSCS','BSCT','BSCU','BSCV'],
+  'Preferred / Income ETFs':      ['FPE','PGF'],
+  'ETFs (Broad / Style / Factor)':['CEFZ','IDEV','IVE','IWD','IWF','IWL','MGC','RWK','VONG'],
+  'Sector / Industry ETFs':       ['KRE'],
+  'International Funds':          [],  // populated from mutual fund list if classifiable
+  'Mutual Funds': [
+    'APDKX','AQMIX','ARTKX','BDMIX','CSCZX','DREVX','EPGAX','EQPGX','FGTAX','FTHSX','FTXSX','GARIX','GENIX','GINDX',
+    'GONIX','GSFTX','GSIMX','GTSGX','HFMDX','HILIX','HULIX','JUESX','MADVX','MBXIX','MEIIX','MIOFX','NASDX','NEAGX',
+    'OAKMX','PEIYX','PIPAX','PIUHX','PMJPX','PRCOX','PRPFX','QAACX','QCENX','QLEIX','QLENX','QMNNX','SCIEX','SEMNX',
+    'SVFAX','TRIGX','VSMIX'
+  ],
+  'Needs Manual Classification':  []
+};
+
+/* Sector map for known watchlist stocks — used to link news flow to holdings. */
+const TICKER_SECTOR = {
+  AAPL:'Technology', MSFT:'Technology', NVDA:'Technology', GOOGL:'Communication Services', META:'Communication Services',
+  AMZN:'Consumer Discretionary', NFLX:'Communication Services', TMUS:'Communication Services',
+  AVGO:'Technology', ANET:'Technology', APH:'Technology', LRCX:'Technology', PLTR:'Technology', IBM:'Technology',
+  ISRG:'Healthcare', LLY:'Healthcare', MRK:'Healthcare', NVO:'Healthcare', SYK:'Healthcare', MCK:'Healthcare', CI:'Healthcare', RXST:'Healthcare',
+  JPM:'Financials', BAC:'Financials', GS:'Financials', MS:'Financials', C:'Financials', BK:'Financials', BLK:'Financials', 'BRK.B':'Financials',
+  GE:'Industrials', GEV:'Utilities', RTX:'Industrials', EMR:'Industrials', JCI:'Industrials',
+  COST:'Consumer Staples', WMT:'Consumer Staples', KR:'Consumer Staples', TJX:'Consumer Discretionary',
+  GM:'Consumer Discretionary', MAR:'Consumer Discretionary',
+  ETR:'Utilities', PPL:'Utilities',
+  LIN:'Materials', CTVA:'Materials',
+  SPG:'Real Estate', WELL:'Real Estate',
+  KMI:'Energy', WMB:'Energy', VLO:'Energy', SHEL:'Energy', BE:'Industrials',
+  KRE:'Financials',
+};
+
+/* =============================================================================
+   DEMO DATA — realistic samples for May 12, 2026
+   ============================================================================= */
+const DEMO = {
+  generatedAt: new Date(),
+
+  /* --- Market Snapshot --- */
+  snapshot: [
+    { lbl:'S&P 500 Futures',  val:'5,847.25',  chg:'+0.32%',  dir:'up' },
+    { lbl:'Nasdaq 100 Futures',val:'20,412.50', chg:'+0.47%',  dir:'up' },
+    { lbl:'Russell 2000 Fut.',val:'2,184.10',  chg:'-0.12%',  dir:'down' },
+    { lbl:'10Y UST Yield',    val:'4.18%',     chg:'+3bps',   dir:'up' },
+    { lbl:'2Y UST Yield',     val:'3.92%',     chg:'+2bps',   dir:'up' },
+    { lbl:'2s10s Spread',     val:'+26bps',    chg:'+1bp',    dir:'flat' },
+    { lbl:'DXY',              val:'102.45',    chg:'-0.18%',  dir:'down' },
+    { lbl:'EUR/USD',          val:'1.0892',    chg:'+0.21%',  dir:'up' },
+    { lbl:'USD/JPY',          val:'154.32',    chg:'+0.10%',  dir:'up' },
+    { lbl:'WTI Crude',        val:'$73.84',    chg:'-0.68%',  dir:'down' },
+    { lbl:'Gold',             val:'$2,418.20', chg:'+0.34%',  dir:'up' },
+    { lbl:'Bitcoin',          val:'$94,210',   chg:'+1.42%',  dir:'up' },
+    { lbl:'VIX',              val:'14.62',     chg:'-2.1%',   dir:'down' },
+  ],
+
+  /* --- Sector heatmap --- */
+  sectors: [
+    { name:'Technology',             sent:'bullish',  drivers:'AI capex commentary remains constructive; semis bid on supply-chain news', irSens:'Medium', infSens:'Low',  earningsTrend:'Beating', valSens:'High' },
+    { name:'Healthcare',             sent:'mixed',    drivers:'GLP-1 supply normalization helping NVO/LLY; managed care pressured by MLR fears', irSens:'Low', infSens:'Low',  earningsTrend:'In-line', valSens:'Medium' },
+    { name:'Industrials',            sent:'bullish',  drivers:'Defense budget pass-through lifting RTX/GE; cap-goods orders firm',           irSens:'Medium', infSens:'Med',  earningsTrend:'Beating', valSens:'Medium' },
+    { name:'Financials',             sent:'neutral',  drivers:'Yield curve slope helping NII, but loan growth modest',                       irSens:'High',   infSens:'Med',  earningsTrend:'Mixed',   valSens:'Medium' },
+    { name:'Consumer Staples',       sent:'bearish',  drivers:'Volume-weak quarters and dollar strength concerns easing only modestly',      irSens:'Low',    infSens:'High', earningsTrend:'Miss',    valSens:'Low'    },
+    { name:'Consumer Discretionary', sent:'mixed',    drivers:'Luxury softening, off-price (TJX) resilient; autos still soft',                irSens:'High',   infSens:'High', earningsTrend:'Mixed',   valSens:'High'   },
+    { name:'Utilities',              sent:'bullish',  drivers:'AI/data-center power demand re-rating multi-utilities (GEV, ETR)',             irSens:'Very High', infSens:'Med', earningsTrend:'In-line', valSens:'Medium' },
+    { name:'Materials',              sent:'neutral',  drivers:'China stimulus headlines short-lived; ag inputs (CTVA) stable',                irSens:'Medium', infSens:'High', earningsTrend:'In-line', valSens:'Medium' },
+    { name:'Real Estate',            sent:'bearish',  drivers:'Office vacancy data soft; mall REITs facing tenant credit chatter',           irSens:'Very High', infSens:'Med', earningsTrend:'Miss',  valSens:'Low' },
+    { name:'Communication Services', sent:'bullish',  drivers:'Ad pricing firming at META/GOOGL; streaming pricing power broadening',         irSens:'Low',    infSens:'Low',  earningsTrend:'Beating', valSens:'Medium' },
+    { name:'Energy',                 sent:'mixed',    drivers:'Crude soft on supply, but midstream (KMI/WMB) flow strong; refiners weak',     irSens:'Low',    infSens:'High', earningsTrend:'Mixed',   valSens:'Medium' },
+  ],
+
+  /* --- General Headlines --- */
+  headlines: [
+    { id:'h1', title:'Fed officials hint April CPI will guide June dot-plot revisions', src:'Reuters', cat:'Markets', published:'2h ago', summary:'Three regional Fed presidents reiterated overnight that this week\'s CPI print is the key variable for the June SEP, with services ex-shelter the focus.', why:'A softer print would re-open the door to a second 2026 cut; a hot print would shift terminal-rate pricing higher.', sentiment:'mixed', urgency:8, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
+    { id:'h2', title:'OpenAI–Microsoft commercial terms reset talks resume', src:'The Information', cat:'Business / Tech', published:'4h ago', summary:'Negotiations over revised compute terms and IP licensing have restarted following the GPT-6 launch window slipping into Q3.', why:'Any change to MSFT\'s preferred-access terms could re-rate Azure growth assumptions and affect hyperscaler capex framing.', sentiment:'market-sensitive', urgency:8, marketSensitive:true, sector:'Technology', breaking:true, url:'#' },
+    { id:'h3', title:'Treasury floats new buyback schedule, modest size', src:'Bloomberg', cat:'Markets', published:'1h ago', summary:'Quarterly refunding details show a marginal increase in 20Y supply and unchanged buybacks; auction sizes hold steady.', why:'Reduces tail risk into next week\'s 10Y/30Y auctions; supports duration on the margin.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
+    { id:'h4', title:'China announces targeted property easing in tier-2 cities', src:'FT', cat:'World', published:'6h ago', summary:'Mortgage rate cuts and down-payment relaxation in 14 cities; no nationwide package.', why:'Modest commodity tailwind (copper, iron ore); limits the size of any China reflation trade.', sentiment:'mixed', urgency:6, marketSensitive:true, sector:'Materials', breaking:false, url:'#' },
+    { id:'h5', title:'AAII bull-bear spread narrows to flat for first time since Feb', src:'AAII', cat:'Markets', published:'8h ago', summary:'Weekly survey shows bullish sentiment dropping 9pts; neutral picking up the slack.', why:'Contrarian setup is no longer extreme — sentiment-driven rallies have less fuel without macro confirmation.', sentiment:'neutral', urgency:4, marketSensitive:false, sector:'Financials', breaking:false, url:'#' },
+    { id:'h6', title:'Senate moves stablecoin bill out of committee', src:'Politico', cat:'Policy', published:'12h ago', summary:'Bipartisan support; floor vote expected within two weeks. Bank-issued stablecoin framework included.', why:'Constructive for banks (JPM, BAC) building stablecoin rails; mild headwind for non-bank crypto issuers.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
+    { id:'h7', title:'EU finalizes AI Act enforcement playbook', src:'Reuters', cat:'World', published:'14h ago', summary:'Penalty schedule and audit framework published; first enforcement window opens July 1.', why:'Compliance cost for large models becomes a real opex line; favors incumbents with legal/audit infrastructure.', sentiment:'neutral', urgency:5, marketSensitive:false, sector:'Technology', breaking:false, url:'#' },
+    { id:'h8', title:'Severe weather: tornado watch across central Plains overnight', src:'NOAA', cat:'Weather', published:'3h ago', summary:'EF2-EF3 risk through 6am local time; insurance industry watching loss accumulation.', why:'Re/insurance names sensitive to a busy spring; CRM premium-pricing thesis intact for now.', sentiment:'neutral', urgency:3, marketSensitive:false, sector:'Financials', breaking:false, url:'#' },
+  ],
+
+  /* --- Colorado --- */
+  colorado: [
+    { id:'co1', title:'Boulder County approves updated wildfire mitigation funding plan', src:'Daily Camera', cat:'Boulder', published:'5h ago', summary:'$18M over three years targeting WUI zones; partnership with state forest service.', why:'Insurance availability for foothills properties continues to be a structural concern; this is a step toward stabilization.', sentiment:'positive', urgency:6, sector:null, url:'#' },
+    { id:'co2', title:'Longmont council OKs zoning change for downtown mixed-use project', src:'Longmont Times-Call', cat:'Longmont', published:'8h ago', summary:'4-story residential-over-retail at Main & 6th; construction expected to start Q3.', why:'Adds housing supply downtown; mild positive for local services and infrastructure tax base.', sentiment:'positive', urgency:4, sector:null, url:'#' },
+    { id:'co3', title:'Denver metro median home price slips 0.8% MoM in April', src:'DMAR', cat:'Real Estate', published:'12h ago', summary:'Inventory up 22% YoY; days on market lengthening modestly.', why:'Front Range is normalizing rather than correcting; rates remain the swing variable for activity.', sentiment:'neutral', urgency:5, sector:'Real Estate', url:'#' },
+    { id:'co4', title:'CDOT releases I-70 mountain corridor summer construction schedule', src:'CDOT', cat:'Transportation', published:'1d ago', summary:'Nighttime closures on weekdays through August; weekend work limited.', why:'Travel impact for residents and tourism revenue planning for ski-resort towns.', sentiment:'neutral', urgency:3, sector:null, url:'#' },
+    { id:'co5', title:'Boulder-based Solid Power signs solid-state battery supply deal', src:'BizWest', cat:'Local Business', published:'18h ago', summary:'Multi-year supply contract with European OEM; pilot deliveries in 2027.', why:'Lifts the local clean-tech cluster narrative; small but positive for regional job growth.', sentiment:'positive', urgency:5, sector:'Industrials', url:'#' },
+    { id:'co6', title:'Polis signs property tax relief extension into law', src:'Colorado Sun', cat:'Politics', published:'1d ago', summary:'Continues the residential assessment reduction through 2027 tax year.', why:'Cushions HOA-level operating cost increases; mild positive for retiree-heavy communities.', sentiment:'positive', urgency:6, sector:'Real Estate', url:'#' },
+  ],
+
+  /* --- National --- */
+  national: [
+    { id:'n1', title:'House Ways & Means schedules markup on 2026 tax extender package', src:'Punchbowl', cat:'Tax', published:'4h ago', summary:'R&D expensing, bonus depreciation, and SALT cap discussion all on the agenda.', why:'Material to capex-heavy industrials and tech R&D-intensive names if R&D expensing returns.', sentiment:'positive', urgency:7, marketSensitive:true, sector:'Industrials', url:'#' },
+    { id:'n2', title:'Treasury yields ease as auction-size projections come in modest', src:'Bloomberg', cat:'Fiscal', published:'6h ago', summary:'Quarterly refunding statement suggests measured increases through year-end.', why:'Reduces near-term supply concern that has been weighing on the long end.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', url:'#' },
+    { id:'n3', title:'FTC opens inquiry into AI labeling practices in retail', src:'WSJ', cat:'Regulation', published:'9h ago', summary:'Focused on advertising claims around "AI-powered" features; consent-order playbook expected.', why:'Compliance cost for consumer-facing AI features; modest negative for SMB-targeted SaaS.', sentiment:'negative', urgency:4, marketSensitive:false, sector:'Technology', url:'#' },
+    { id:'n4', title:'Consumer confidence index slips 1.8pts in preliminary May read', src:'UMich', cat:'Macro', published:'1d ago', summary:'Decline driven by future expectations; current conditions held flat.', why:'Modest dovish signal for the Fed; reinforces the soft-landing-with-bumps narrative.', sentiment:'mixed', urgency:6, marketSensitive:true, sector:'Consumer Discretionary', url:'#' },
+    { id:'n5', title:'SCOTUS hears oral arguments in CFPB funding case sequel', src:'Reuters', cat:'Legal', published:'1d ago', summary:'Questions focus on remedies if funding mechanism is altered; ruling expected June.', why:'Regulatory uncertainty for consumer-credit names; mild overhang on cards and BNPL.', sentiment:'neutral', urgency:4, marketSensitive:false, sector:'Financials', url:'#' },
+    { id:'n6', title:'Senate stablecoin bill clears committee with bipartisan vote', src:'Politico', cat:'Policy', published:'12h ago', summary:'Includes bank-issuer framework and reserve transparency standards.', why:'Constructive for JPM/BAC/C stablecoin initiatives; mild headwind for non-bank issuers.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', url:'#' },
+  ],
+
+  /* --- Business: Macro --- */
+  macro: [
+    { id:'m1', title:'NY Fed inflation expectations: 1Y at 3.0%, 3Y holds at 2.7%', src:'NY Fed SCE', cat:'Inflation', published:'18h ago', summary:'1-year expectations down 0.2pts; medium-term expectations anchored.', why:'Anchored expectations remain the Fed\'s key cover for cuts later this year.', sentiment:'positive', urgency:7, marketSensitive:true, sector:'Financials', url:'#' },
+    { id:'m2', title:'Atlanta Fed GDPNow Q2 estimate revised to 2.1% from 1.8%', src:'Atlanta Fed', cat:'GDP', published:'1d ago', summary:'Higher net exports contribution; consumer spending input unchanged.', why:'Soft-landing narrative still intact; nominal growth supportive of earnings.', sentiment:'positive', urgency:6, marketSensitive:true, sector:null, url:'#' },
+    { id:'m3', title:'Senior Loan Officer Survey: C&I standards ease modestly', src:'Federal Reserve', cat:'Credit', published:'2d ago', summary:'First easing in standards since 2022; demand still tepid.', why:'Credit-channel transmission improving — incremental positive for cyclicals and small-cap.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', url:'#' },
+    { id:'m4', title:'WTI slips below $74 as OPEC+ signals patience on supply cuts', src:'Reuters', cat:'Commodities', published:'5h ago', summary:'Meeting next month likely to maintain current production levels; demand concerns weighing.', why:'Weighs on refiners and integrateds (VLO, SHEL); supportive for transports and consumer.', sentiment:'mixed', urgency:6, marketSensitive:true, sector:'Energy', url:'#' },
+    { id:'m5', title:'Dollar index pulls back as European data firms', src:'Bloomberg', cat:'FX', published:'8h ago', summary:'German ZEW expectations and Eurozone industrial output both beat.', why:'Marginal tailwind for multinational earnings translation in upcoming reports.', sentiment:'positive', urgency:5, marketSensitive:true, sector:null, url:'#' },
+  ],
+
+  /* --- Economic Calendar (upcoming) --- */
+  econCalendar: [
+    { date:'2026-05-13', time:'8:30am ET',  report:'April CPI',                       prior:'3.1% YoY',   consensus:'3.0% YoY',   importance:'High',   why:'Single most important macro print this month; will set tone for Fed June SEP.', sectors:'All', watchlist:'All' },
+    { date:'2026-05-14', time:'8:30am ET',  report:'April PPI',                       prior:'2.5% YoY',   consensus:'2.4% YoY',   importance:'High',   why:'Confirms or complicates CPI; goods-component watched for tariff pass-through.', sectors:'Materials, Industrials, Staples', watchlist:'CTVA, LIN' },
+    { date:'2026-05-14', time:'8:30am ET',  report:'Initial Jobless Claims',          prior:'212K',       consensus:'215K',       importance:'Med',    why:'Weekly read on labor market firmness.', sectors:'Consumer', watchlist:'TJX, COST' },
+    { date:'2026-05-15', time:'8:30am ET',  report:'April Retail Sales',              prior:'+0.4% MoM',  consensus:'+0.3% MoM',  importance:'High',   why:'Consumer health barometer; control group is what feeds GDP.', sectors:'Consumer Disc., Staples', watchlist:'WMT, COST, AMZN, TJX' },
+    { date:'2026-05-15', time:'9:15am ET',  report:'Industrial Production (April)',   prior:'-0.4% MoM',  consensus:'+0.2% MoM',  importance:'Med',    why:'Capacity utilization read for cap-goods cycle.', sectors:'Industrials, Materials', watchlist:'GE, EMR, JCI' },
+    { date:'2026-05-16', time:'10:00am ET', report:'UMich Consumer Sentiment (May P)',prior:'67.4',       consensus:'68.0',       importance:'Med',    why:'Inflation expectations component is the Fed-relevant piece.', sectors:'Consumer', watchlist:'WMT, KR, TJX' },
+    { date:'2026-05-21', time:'2:00pm ET',  report:'FOMC Minutes (April meeting)',    prior:'—',          consensus:'—',          importance:'High',   why:'Dot-plot internal range and balance-sheet language.', sectors:'All', watchlist:'All' },
+    { date:'2026-05-23', time:'10:00am ET', report:'New Home Sales (April)',          prior:'693K',       consensus:'680K',       importance:'Med',    why:'Builder demand barometer; rates-sensitive.', sectors:'Real Estate, Industrials', watchlist:'SPG, WELL' },
+    { date:'2026-05-30', time:'8:30am ET',  report:'PCE Inflation (April)',           prior:'2.7% YoY',   consensus:'2.6% YoY',   importance:'High',   why:'Fed\'s preferred inflation gauge.', sectors:'All', watchlist:'All' },
+    { date:'2026-05-30', time:'8:30am ET',  report:'Personal Income & Spending (Apr)',prior:'+0.5% MoM',  consensus:'+0.4% MoM',  importance:'Med',    why:'Savings rate and wage income piece for consumer thesis.', sectors:'Consumer', watchlist:'WMT, COST' },
+  ],
+
+  /* --- Earnings --- */
+  earningsToday: [
+    { ticker:'HD',   name:'Home Depot',   sector:'Consumer Discretionary', time:'BMO', epsEst:3.62, epsPrior:3.81, revEst:'$36.8B', revisionDir:'flat',     note:'DIY traffic vs pro mix is the key disclosure', watchlist:false },
+    { ticker:'TJX',  name:'TJX Companies',sector:'Consumer Discretionary', time:'BMO', epsEst:0.88, epsPrior:0.93, revEst:'$13.0B', revisionDir:'positive', note:'Comp-store trends watched for trade-down evidence', watchlist:true },
+    { ticker:'ONON', name:'On Holding',   sector:'Consumer Discretionary', time:'BMO', epsEst:0.18, epsPrior:0.14, revEst:'CHF 0.62B', revisionDir:'positive', note:'DTC growth vs wholesale balance', watchlist:false },
+  ],
+  earningsTomorrow: [
+    { ticker:'CSCO', name:'Cisco',          sector:'Technology', time:'AMC', epsEst:0.88, epsPrior:0.97, revEst:'$13.9B', revisionDir:'negative', note:'Splunk integration sync; AI infra commentary',           watchlist:false },
+    { ticker:'WMT',  name:'Walmart',        sector:'Consumer Staples', time:'BMO', epsEst:0.52, epsPrior:0.60, revEst:'$159.6B', revisionDir:'positive', note:'Comps and gross margin direction; advertising growth', watchlist:true },
+  ],
+  earningsWeek: [
+    { ticker:'NVDA', name:'NVIDIA',        sector:'Technology', date:'2026-05-22', epsEst:0.74, epsPrior:0.61, revEst:'$28.1B', revisionDir:'positive', note:'Data center sequencing; sovereign AI commentary',     watchlist:true },
+    { ticker:'TGT',  name:'Target',        sector:'Consumer Discretionary', date:'2026-05-21', epsEst:2.07, epsPrior:2.03, revEst:'$24.5B', revisionDir:'flat',     note:'Discretionary vs essentials mix',                       watchlist:false },
+    { ticker:'PANW', name:'Palo Alto',     sector:'Technology', date:'2026-05-19', epsEst:1.59, epsPrior:1.32, revEst:'$2.16B', revisionDir:'positive', note:'Platformization NRR; billings cadence',                watchlist:false },
+    { ticker:'INTU', name:'Intuit',        sector:'Technology', date:'2026-05-22', epsEst:9.38, epsPrior:9.88, revEst:'$6.81B', revisionDir:'flat',     note:'Small-business segment and TurboTax season wrap',      watchlist:false },
+  ],
+  earningsRevisionsTop: [
+    { ticker:'NVDA', dir:'up',   pct:+4.2, note:'Street raising Q2/Q3 DC revenue; supply commentary positive',     watchlist:true,  sector:'Technology' },
+    { ticker:'LLY',  dir:'up',   pct:+2.8, note:'Mounjaro volumes pacing ahead; sell-side pulling out-year est.',  watchlist:true,  sector:'Healthcare' },
+    { ticker:'COST', dir:'up',   pct:+1.4, note:'Membership fee increase flowing through; renewals strong',         watchlist:true,  sector:'Consumer Staples' },
+    { ticker:'TSLA', dir:'down', pct:-3.6, note:'Delivery cut; gross margin compression continues',                 watchlist:false, sector:'Consumer Discretionary' },
+    { ticker:'F',    dir:'down', pct:-2.1, note:'Warranty costs and EV losses bite; consensus revising lower',      watchlist:false, sector:'Consumer Discretionary' },
+  ],
+
+  /* --- Deals / M&A --- */
+  deals: [
+    { id:'d1', title:'PE consortium offers $42/sh for mid-cap healthcare services name',           src:'Bloomberg', cat:'M&A',   summary:'Friendly approach; 28% premium to last close. Board reviewing.',                                       why:'Signals ongoing PE appetite for predictable cash-flow healthcare assets.',                       sentiment:'positive', urgency:7, sector:'Healthcare',  watchlist:false, value:'$8.4B' },
+    { id:'d2', title:'AVGO authorizes $10B incremental buyback',                                   src:'Filing',    cat:'Buyback',summary:'On top of existing program; opportunistic execution authorized through 2027.',                       why:'Continues management\'s capital-return posture post-VMW integration.',                            sentiment:'positive', urgency:7, sector:'Technology',  watchlist:true,  value:'$10B' },
+    { id:'d3', title:'IPO: cybersecurity unicorn files S-1, terms in two weeks',                   src:'WSJ',       cat:'IPO',   summary:'$150M target raise; profitable on adj. EBITDA basis; lead banks named.',                                why:'Tests appetite for high-growth software IPOs; valuation will be the read-through.',              sentiment:'neutral',  urgency:5, sector:'Technology',  watchlist:false, value:'$150M' },
+    { id:'d4', title:'Energy midstream merger talks revived between two large MLPs',               src:'Reuters',   cat:'M&A',   summary:'Discussions had stalled in Q1; resumed amid simpler tax structure environment.',                       why:'Watch KMI, WMB for read-across on midstream consolidation thesis.',                              sentiment:'mixed',    urgency:6, sector:'Energy',      watchlist:true,  value:'$28B' },
+    { id:'d5', title:'Activist takes 7% stake in mid-cap industrial; pushes for portfolio review', src:'13D',       cat:'Activist',summary:'Letter to board cites underperformance vs peers and conglomerate discount.',                          why:'Reinforces broader trend of activist pressure on diversified industrials.',                       sentiment:'mixed',    urgency:5, sector:'Industrials', watchlist:false, value:'—' },
+    { id:'d6', title:'JCI announces 5% dividend increase, 24th consecutive raise',                 src:'Filing',    cat:'Dividend',summary:'Quarterly dividend rises to $0.38 from $0.36. Coverage remains comfortable.',                          why:'Continues management\'s capital-return discipline; ties to broader building products thesis.',   sentiment:'positive', urgency:5, sector:'Industrials', watchlist:true,  value:'+5%' },
+  ],
+
+  /* --- Watchlist alerts (will be auto-augmented by news linkage) --- */
+  watchlistAlertsSeed: [
+    { ticker:'NVDA',  headline:'Street raising Q2/Q3 estimates ahead of May 22 print; sovereign AI deals ramp', why:'Earnings revisions and product cycle aligning into the print; expectations setup is the key risk.',     sentiment:'positive', urgency:8, source:'JPM, MS notes' },
+    { ticker:'LLY',   headline:'Mounjaro volumes pacing ahead; sell-side pulling out-year estimates',           why:'Continued upward estimate revisions support the multiple even as the obesity-drug debate matures.',   sentiment:'positive', urgency:7, source:'GS, MS notes' },
+    { ticker:'TJX',   headline:'TJX reports BMO; comp-store trends watched for trade-down evidence',            why:'Off-price thesis remains intact through consumer trade-down; quarter is a key checkpoint.',           sentiment:'mixed',    urgency:7, source:'Earnings preview' },
+    { ticker:'WMT',   headline:'Walmart reports tomorrow BMO; advertising and grocery comps in focus',          why:'Ad business and membership monetization are the structural re-rating drivers, not headline EPS.',      sentiment:'mixed',    urgency:8, source:'Earnings preview' },
+    { ticker:'GEV',   headline:'AI/data-center power demand re-rating multi-utilities; analyst day next month', why:'Backlog visibility and gas-turbine pricing power supportive; positioning has become crowded.',          sentiment:'positive', urgency:6, source:'Sector note' },
+    { ticker:'BSCQ',  headline:'2026 maturity BulletShares; spread compression nearly fully realized',          why:'Approaching maturity — duration risk minimal but reinvestment decision is now the question.',          sentiment:'neutral',  urgency:5, source:'Roll signal' },
+  ],
+
+  /* --- Possible opportunities (cautious framing) --- */
+  opportunities: [
+    {
+      type:'Watchlist research idea',
+      affects:'GEV, ETR, PPL',
+      catalyst:'AI/data-center power demand re-rating utilities with gas-turbine and nuclear exposure',
+      reason:'Hyperscaler capex commentary keeps reinforcing structural power-demand growth; backlog disclosures from utilities are firming.',
+      whyMatters:'A genuine multi-year capex cycle in power generation is one of the cleaner non-AI ways to express the AI buildout thesis.',
+      related:'GEV (turbines), ETR (regulated utility w/ nuclear), PPL (regulated, capex growth)',
+      bullCase:'Backlog growth + pricing power + regulatory support for nuclear life-extension.',
+      bearCase:'Crowded trade; multiple re-rating has done significant work; rate sensitivity if Fed hold-pattern extends.',
+      risks:'Interest-rate sensitivity, regulatory delay risk, equipment supply-chain bottlenecks.',
+      horizon:'Intermediate-term (6-18 months)',
+      confidence:'Medium',
+      nextStep:'Pull GEV backlog/book-to-bill trend and ETR rate-case schedule; compare implied power-demand growth in consensus vs analyst day commentary.'
+    },
+    {
+      type:'Risk hedge idea',
+      affects:'Watchlist broad equity exposure',
+      catalyst:'CPI risk tomorrow (May 13); thin sentiment cushion after AAII normalization',
+      reason:'Vol is low (VIX ~14.6) and event risk into CPI is meaningful; cost of a short-dated put hedge is reasonable relative to potential dispersion.',
+      whyMatters:'Asymmetric event into a binary print with low vol pricing; one of the cheaper hedging windows of the quarter.',
+      related:'Index puts (SPY/QQQ), individual mega-cap protection where exposure is concentrated.',
+      bullCase:'In-line CPI removes a key overhang and lets rates-sensitive trades resume.',
+      bearCase:'Hot print could trigger rates-led drawdown of 1-3% across mega-cap tech.',
+      risks:'Time decay if event resolves benignly; sizing discipline matters more than direction.',
+      horizon:'Short-term (event-driven)',
+      confidence:'Medium',
+      nextStep:'Size the hedge against actual portfolio beta to a 1-3% market move; consider put spreads to manage premium decay.'
+    },
+  ],
+};
+
+/* =============================================================================
+   STATE
+   ============================================================================= */
+const STATE = {
+  mode: CONFIG.mode,
+  filters: { sentiment:'all', sector:'all', minUrgency:1, watchlistOnly:false, favoritesOnly:false, search:'' },
+  favorites: new Set(JSON.parse(localStorage.getItem('news.favorites') || '[]')),
+  watchlist: JSON.parse(localStorage.getItem('news.watchlist') || 'null') || structuredClone(DEFAULT_WATCHLIST),
+  collapsed: new Set(JSON.parse(localStorage.getItem('news.collapsed') || '[]')),
+  refreshTimer: null,
+};
+
+/* =============================================================================
+   UTILITIES
+   ============================================================================= */
+const $ = (sel, el=document) => el.querySelector(sel);
+const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+}
+function fmtTime(d) {
+  return d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+}
+function sentimentTag(s) {
+  const map = { positive:'tag-pos', negative:'tag-neg', neutral:'tag-neu', mixed:'tag-mixed', 'market-sensitive':'tag-mkt' };
+  return `<span class="tag ${map[s]||'tag-neu'}">${s}</span>`;
+}
+function urgencyTag(u) {
+  const color = u >= 9 ? 'var(--breaking)' : u >= 7 ? 'var(--warn)' : u >= 5 ? 'var(--accent)' : 'var(--neu)';
+  return `<span class="tag tag-urg" style="background:${color};color:#fff">U${u}</span>`;
+}
+function saveLS() {
+  localStorage.setItem('news.favorites', JSON.stringify([...STATE.favorites]));
+  localStorage.setItem('news.watchlist', JSON.stringify(STATE.watchlist));
+  localStorage.setItem('news.collapsed', JSON.stringify([...STATE.collapsed]));
+}
+function flatWatchlist() {
+  return Object.values(STATE.watchlist).flat();
+}
+function isOnWatchlist(ticker) {
+  return flatWatchlist().some(t => t.toUpperCase() === ticker.toUpperCase());
+}
+
+/* =============================================================================
+   RANKING LOGIC — per spec
+   =============================================================================
+   Business news ranking (weights: 30/20/15/15/10/10):
+     - market impact
+     - economic importance
+     - earnings relevance
+     - sector relevance
+     - recency
+     - source credibility
+   Scores are normalized 0-100. Use rankBusiness() to sort.
+*/
+const SOURCE_CRED = { 'Bloomberg':95,'WSJ':95,'FT':95,'Reuters':93,'The Economist':90,'Politico':85,'Punchbowl':85,'Axios':82,'Semafor':80,'CNBC':78,'The Information':88,'Filing':100,'NY Fed SCE':100,'Atlanta Fed':100,'Federal Reserve':100,'NOAA':100,'AAII':80,'UMich':90,'13D':85,'JPM, MS notes':85,'GS, MS notes':85,'Earnings preview':75,'Sector note':75,'Roll signal':70,'BizWest':70,'Daily Camera':75,'Longmont Times-Call':70,'DMAR':75,'CDOT':95,'Colorado Sun':80 };
+
+function recencyScore(publishedStr) {
+  if (!publishedStr) return 50;
+  const m = publishedStr.match(/(\d+)(h|d)/);
+  if (!m) return 60;
+  const n = parseInt(m[1], 10);
+  const unit = m[2];
+  const hours = unit === 'd' ? n*24 : n;
+  if (hours <= 2) return 100;
+  if (hours <= 6) return 85;
+  if (hours <= 12) return 70;
+  if (hours <= 24) return 55;
+  return 35;
+}
+
+function rankBusinessScore(item) {
+  const w = CONFIG.rankBusiness;
+  const marketImpact      = (item.marketSensitive ? 80 : 40) + (item.urgency*4);
+  const econImportance    = ['Inflation','GDP','Credit','Jobs','Macro','Tax','Fiscal','Policy','Regulation'].includes(item.cat) ? 90 : 50;
+  const earningsRelevance = item.cat === 'Earnings' || /earn/i.test(item.title||'') ? 85 : 45;
+  const sectorRelevance   = item.sector ? 75 : 45;
+  const recency           = recencyScore(item.published);
+  const sourceCred        = SOURCE_CRED[item.src] || 70;
+  return Math.round(
+    w.marketImpact*marketImpact + w.econImportance*econImportance +
+    w.earningsRelevance*earningsRelevance + w.sectorRelevance*sectorRelevance +
+    w.recency*recency + w.sourceCredibility*sourceCred
+  );
+}
+
+function rankWatchlistScore(alert) {
+  const w = CONFIG.rankWatchlist;
+  const directImpact      = alert.ticker && isOnWatchlist(alert.ticker) ? 95 : 30;
+  const marketMoving      = alert.urgency >= 7 ? 90 : alert.urgency >= 5 ? 65 : 40;
+  const earningsRevImpact = /earn|estimate|guidance|revis/i.test(alert.headline) ? 85 : 50;
+  const sectorAssetClass  = 70;
+  const recency           = 80;
+  const sourceCred        = SOURCE_CRED[alert.source] || 70;
+  return Math.round(
+    w.directImpact*directImpact + w.marketMoving*marketMoving +
+    w.earningsRevImpact*earningsRevImpact + w.sectorAssetClass*sectorAssetClass +
+    w.recency*recency + w.sourceCredibility*sourceCred
+  );
+}
+
+/* =============================================================================
+   DATA FETCH — demo / live / hybrid
+   =============================================================================
+   To wire live data:
+     1. Add your API key in CONFIG.apiKeys at the top.
+     2. Switch the mode pill (top banner) to "Live" or "Hybrid".
+     3. Implement the fetch in each get*() below, replacing the `if (demo)` branch.
+     4. For production, do NOT call third-party APIs from this frontend with secret keys —
+        proxy them through a small backend that injects keys server-side.
+*/
+async function getHeadlines()      { return DEMO.headlines; }
+async function getColorado()       { return DEMO.colorado; }
+async function getNational()       { return DEMO.national; }
+async function getMacro()          { return DEMO.macro; }
+async function getEconCalendar()   { return DEMO.econCalendar; }
+async function getEarningsToday()  { return DEMO.earningsToday; }
+async function getEarningsTomorrow(){return DEMO.earningsTomorrow; }
+async function getEarningsWeek()   { return DEMO.earningsWeek; }
+async function getEarningsRevisions(){return DEMO.earningsRevisionsTop; }
+async function getDeals()          { return DEMO.deals; }
+async function getSectors()        { return DEMO.sectors; }
+async function getWatchlistAlerts() {
+  /* In hybrid/live mode, you would also pull per-ticker news here for each
+     watchlist symbol via CONFIG.endpoints.companyNews and score with rankWatchlistScore. */
+  return DEMO.watchlistAlertsSeed
+    .map(a => ({ ...a, score: rankWatchlistScore(a) }))
+    .sort((a,b) => b.score - a.score);
+}
+async function getOpportunities()  { return DEMO.opportunities; }
+async function getSnapshot()       { return DEMO.snapshot; }
+
+/* =============================================================================
+   FILTERING
+   ============================================================================= */
+function applyFilters(items) {
+  const f = STATE.filters;
+  return items.filter(item => {
+    if (f.sentiment !== 'all' && item.sentiment !== f.sentiment) return false;
+    if (f.sector !== 'all' && item.sector !== f.sector) return false;
+    if ((item.urgency || 0) < f.minUrgency) return false;
+    if (f.favoritesOnly && !STATE.favorites.has(item.id)) return false;
+    if (f.search) {
+      const s = f.search.toLowerCase();
+      const hay = `${item.title||''} ${item.summary||''} ${item.why||''} ${item.cat||''} ${item.src||''} ${item.sector||''}`.toLowerCase();
+      if (!hay.includes(s)) return false;
+    }
+    return true;
+  });
+}
+
+/* =============================================================================
+   RENDERERS
+   ============================================================================= */
+function renderBriefing() {
+  const top5 = DEMO.headlines.slice(0,5);
+  const risks = [
+    'Hot CPI print (May 13) re-prices Fed cuts and pressures rate-sensitive sectors',
+    'Office REIT credit / vacancy data continues to weaken — watch SPG read-through',
+    'OPEC+ patience on cuts keeps oil soft and pressures refiners (VLO, SHEL)'
+  ];
+  const opps = [
+    'AI power-demand thesis (GEV, ETR, PPL) — backlog firming, multi-year cycle',
+    'NVDA into May 22 print — estimate revisions still trending up; expectations bar is elevated',
+    'BulletShares 2026 (BSCQ) maturity decision — duration risk minimal; reinvestment plan needed'
+  ];
+  const sectorLeaders = ['Technology (AI capex)','Utilities (power demand)','Communication Services (ad pricing)'];
+  const sectorLaggards = ['Real Estate (office, mall)','Consumer Staples (volume-weak)','Energy refiners'];
+  const grid = $('#briefing-grid');
+  $('#briefing-date').textContent = fmtDate(DEMO.generatedAt) + ' — pre-market';
+  grid.innerHTML = `
+    <div class="briefing-block">
+      <h4>Top Headlines</h4>
+      <ul>${top5.map(h => `<li>${h.title} <span style="color:var(--text-3)">— ${h.src}</span></li>`).join('')}</ul>
+    </div>
+    <div class="briefing-block">
+      <h4>Top Business Risks</h4>
+      <ul>${risks.map(r => `<li>${r}</li>`).join('')}</ul>
+    </div>
+    <div class="briefing-block">
+      <h4>Possible Opportunities</h4>
+      <ul>${opps.map(o => `<li>${o}</li>`).join('')}</ul>
+    </div>
+    <div class="briefing-block">
+      <h4>Most Important Economic Report</h4>
+      <ul><li><strong>April CPI</strong> — May 13, 8:30am ET. Consensus 3.0% YoY. Services ex-shelter is the swing factor.</li></ul>
+    </div>
+    <div class="briefing-block">
+      <h4>Earnings to Watch</h4>
+      <ul>
+        <li><span class="ticker">WMT</span> — tomorrow BMO; advertising and grocery comps in focus</li>
+        <li><span class="ticker">TJX</span> — today BMO; trade-down evidence</li>
+        <li><span class="ticker">NVDA</span> — May 22; sovereign AI deals and supply commentary</li>
+      </ul>
+    </div>
+    <div class="briefing-block">
+      <h4>Sector Leadership / Weakness</h4>
+      <ul>
+        <li><strong>Leading:</strong> ${sectorLeaders.join(', ')}</li>
+        <li><strong>Lagging:</strong> ${sectorLaggards.join(', ')}</li>
+      </ul>
+    </div>
+    <div class="briefing-outlook">
+      <strong>Market Outlook.</strong> Setup remains constructive but no longer cheap on sentiment. CPI tomorrow is the
+      pivot — an in-line or soft print likely extends the rates-relief trade; a hot print resets the timeline for cuts and
+      hits the longest-duration assets first. AI-power-demand and earnings-revision leaders (NVDA, LLY, COST) remain the
+      cleanest structural longs. Trim into strength where positioning has become consensus; preserve dry powder for an
+      event-driven dislocation.
+      <br><br><strong>What I'd Watch Today.</strong> CPI whisper numbers and 10Y auction tone. TJX comp commentary as a
+      consumer trade-down read. Any midstream M&amp;A confirmation as a read-across for KMI/WMB.
+    </div>
+  `;
+}
+
+function renderSnapshot() {
+  getSnapshot().then(data => {
+    const stamp = $('#snapshot-stamp');
+    stamp.textContent = `Pre-market • as of ${fmtTime(new Date())}`;
+    $('#snapshot').innerHTML = data.map(d => `
+      <div class="snap-cell">
+        <div class="lbl">${d.lbl}</div>
+        <div class="val">${d.val}</div>
+        <div class="chg ${d.dir}">${d.chg}</div>
+      </div>
+    `).join('');
+  });
+}
+
+function renderHeatmap() {
+  getSectors().then(sectors => {
+    $('#heatmap').innerHTML = sectors.map(s => `
+      <div class="sector-tile" data-sent="${s.sent}" data-sector="${s.name}">
+        <div class="name">${s.name}</div>
+        <div class="summary">${s.drivers}</div>
+      </div>
+    `).join('');
+    $$('.sector-tile').forEach(t => t.addEventListener('click', () => {
+      STATE.filters.sector = t.dataset.sector;
+      document.querySelector(`#filter-sector .chip[data-sec="${t.dataset.sector}"]`)?.click();
+      $('#headlines').scrollIntoView({ behavior:'smooth' });
+    }));
+  });
+}
+
+function buildCard(item) {
+  const fav = STATE.favorites.has(item.id);
+  const breaking = item.breaking ? '<span class="tag tag-breaking">BREAKING</span>' : '';
+  const mktSensitive = item.marketSensitive ? '<span class="tag tag-mkt">MARKET-MOVING</span>' : '';
+  return `
+    <div class="card" data-id="${item.id}">
+      <div class="card-head">
+        <h3>${item.title}</h3>
+        <span class="tag tag-fav" data-fav="${item.id}" title="Save as favorite">${fav?'★':'☆'}</span>
+      </div>
+      <div class="card-meta">
+        <span class="src">${item.src}</span>
+        <span>•</span>
+        <span>${item.published}</span>
+        ${item.cat ? `<span>•</span><span>${item.cat}</span>` : ''}
+        ${item.sector ? `<span>•</span><span>${item.sector}</span>` : ''}
+      </div>
+      <div class="card-body">${item.summary}</div>
+      ${item.why ? `<div class="why-matters"><strong>Why it matters:</strong> ${item.why}</div>` : ''}
+      <div class="card-footer">
+        ${sentimentTag(item.sentiment || 'neutral')}
+        ${urgencyTag(item.urgency || 5)}
+        ${breaking}
+        ${mktSensitive}
+        ${item.url ? `<a href="${item.url}" target="_blank" rel="noopener" style="margin-left:auto;font-size:11px">Read source →</a>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderCardSection(getter, targetSel, countSel) {
+  getter().then(items => {
+    const ranked = items
+      .map(i => ({ ...i, _score: rankBusinessScore(i) }))
+      .sort((a,b) => b._score - a._score);
+    const filtered = applyFilters(ranked);
+    $(targetSel).innerHTML = filtered.length
+      ? filtered.map(buildCard).join('')
+      : '<div class="empty">No items match the current filters.</div>';
+    if (countSel) $(countSel).textContent = filtered.length;
+    bindCardEvents();
+  });
+}
+
+function bindCardEvents() {
+  $$('.tag-fav').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const id = el.dataset.fav;
+    if (STATE.favorites.has(id)) STATE.favorites.delete(id);
+    else STATE.favorites.add(id);
+    saveLS();
+    renderAll();
+  });
+}
+
+function renderEconCalendar() {
+  getEconCalendar().then(rows => {
+    $('#econ-body').innerHTML = `
+      <table class="cal">
+        <thead><tr>
+          <th>Date</th><th>Time</th><th>Report</th><th>Consensus</th><th>Prior</th><th>Importance</th>
+          <th>Why it matters</th><th>Sectors</th><th>Watchlist</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td class="mono">${r.date}</td>
+              <td class="mono">${r.time}</td>
+              <td><strong>${r.report}</strong></td>
+              <td class="mono">${r.consensus}</td>
+              <td class="mono">${r.prior}</td>
+              <td>${r.importance}</td>
+              <td>${r.why}</td>
+              <td>${r.sectors}</td>
+              <td>${r.watchlist}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  });
+}
+
+function renderEarnings() {
+  Promise.all([getEarningsToday(), getEarningsTomorrow(), getEarningsWeek(), getEarningsRevisions()])
+  .then(([today, tomorrow, week, revisions]) => {
+    const earningsRow = e => `
+      <tr ${e.watchlist ? 'style="background:rgba(0,212,170,0.05)"' : ''}>
+        <td class="mono"><strong>${e.ticker}</strong>${e.watchlist?' ★':''}</td>
+        <td>${e.name}</td>
+        <td>${e.sector}</td>
+        <td class="mono">${e.time || e.date || ''}</td>
+        <td class="mono">${e.epsEst}</td>
+        <td class="mono">${e.epsPrior}</td>
+        <td class="mono">${e.revEst}</td>
+        <td>${e.revisionDir === 'positive' ? '<span class="tag tag-pos">↑ Pos</span>' :
+              e.revisionDir === 'negative' ? '<span class="tag tag-neg">↓ Neg</span>' :
+              '<span class="tag tag-neu">→ Flat</span>'}</td>
+        <td>${e.note||''}</td>
+      </tr>`;
+    const revRow = r => `
+      <tr ${r.watchlist ? 'style="background:rgba(0,212,170,0.05)"' : ''}>
+        <td class="mono"><strong>${r.ticker}</strong>${r.watchlist?' ★':''}</td>
+        <td>${r.sector}</td>
+        <td>${r.dir === 'up' ? '<span class="tag tag-pos">↑</span>' : '<span class="tag tag-neg">↓</span>'}</td>
+        <td class="mono">${r.pct>0?'+':''}${r.pct}%</td>
+        <td>${r.note}</td>
+      </tr>`;
+    $('#earnings-body').innerHTML = `
+      <h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px">Reporting Today (BMO/AMC)</h4>
+      <table class="cal"><thead><tr><th>Ticker</th><th>Name</th><th>Sector</th><th>Time</th><th>EPS Est</th><th>EPS Prior</th><th>Rev Est</th><th>Revision</th><th>Note</th></tr></thead>
+      <tbody>${today.map(earningsRow).join('')}</tbody></table>
+
+      <h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Reporting Tomorrow</h4>
+      <table class="cal"><thead><tr><th>Ticker</th><th>Name</th><th>Sector</th><th>Time</th><th>EPS Est</th><th>EPS Prior</th><th>Rev Est</th><th>Revision</th><th>Note</th></tr></thead>
+      <tbody>${tomorrow.map(earningsRow).join('')}</tbody></table>
+
+      <h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">This Week</h4>
+      <table class="cal"><thead><tr><th>Ticker</th><th>Name</th><th>Sector</th><th>Date</th><th>EPS Est</th><th>EPS Prior</th><th>Rev Est</th><th>Revision</th><th>Note</th></tr></thead>
+      <tbody>${week.map(earningsRow).join('')}</tbody></table>
+
+      <h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px">Biggest Estimate Revisions (Past Week)</h4>
+      <table class="cal"><thead><tr><th>Ticker</th><th>Sector</th><th>Dir</th><th>Change</th><th>Note</th></tr></thead>
+      <tbody>${revisions.map(revRow).join('')}</tbody></table>
+
+      <div style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">
+        ★ = on watchlist. Beats with lowered guidance are flagged as cautionary in the Why-it-matters note.
+      </div>
+    `;
+  });
+}
+
+function renderSectors() {
+  getSectors().then(sectors => {
+    $('#sectors-body').innerHTML = `
+      <table class="cal">
+        <thead><tr>
+          <th>Sector</th><th>Sentiment</th><th>Drivers / What Matters Today</th>
+          <th>Earnings Trend</th><th>Rate Sens.</th><th>Inflation Sens.</th><th>Valuation Sens.</th>
+        </tr></thead>
+        <tbody>
+          ${sectors.map(s => `
+            <tr>
+              <td><strong>${s.name}</strong></td>
+              <td><span class="tag tag-${s.sent==='bullish'?'pos':s.sent==='bearish'?'neg':s.sent==='mixed'?'mixed':'neu'}">${s.sent}</span></td>
+              <td>${s.drivers}</td>
+              <td>${s.earningsTrend}</td>
+              <td>${s.irSens}</td>
+              <td>${s.infSens}</td>
+              <td>${s.valSens}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  });
+}
+
+function renderWatchlist() {
+  $('#wl-count').textContent = `${flatWatchlist().length} items`;
+
+  /* Alerts */
+  getWatchlistAlerts().then(alerts => {
+    $('#wl-alerts').innerHTML = alerts.length ? alerts.map(a => `
+      <div class="alert-card">
+        <div class="alert-head">
+          <span class="ticker">${a.ticker}</span>
+          ${sentimentTag(a.sentiment)}
+          ${urgencyTag(a.urgency)}
+          <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-3)">score ${a.score}</span>
+        </div>
+        <div class="alert-body">${a.headline}</div>
+        <div class="alert-why"><strong>Why it matters:</strong> ${a.why}</div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;font-family:var(--mono)">${a.source}</div>
+      </div>
+    `).join('') : '<div class="empty">No alerts ranked above threshold.</div>';
+  });
+
+  /* Categories */
+  const wl = STATE.watchlist;
+  $('#wl-categories').innerHTML = Object.entries(wl).map(([cat, tickers]) => {
+    if (!tickers.length) return '';
+    return `
+      <div class="watchlist-category">
+        <h4>${cat} (${tickers.length})</h4>
+        <div class="ticker-grid">
+          ${tickers.sort().map(t => {
+            const sector = TICKER_SECTOR[t.toUpperCase()] ? ` · ${TICKER_SECTOR[t.toUpperCase()]}` : '';
+            return `<div class="ticker-tile" data-ticker="${t}" title="${t}${sector}">
+              <span>${t}</span>
+              <span class="remove" data-remove="${t}" data-cat="${cat}">×</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  $$('[data-remove]').forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const t = el.dataset.remove;
+    const c = el.dataset.cat;
+    STATE.watchlist[c] = STATE.watchlist[c].filter(x => x !== t);
+    saveLS();
+    renderWatchlist();
+  });
+}
+
+function classifyTicker(sym) {
+  const s = sym.trim().toUpperCase();
+  if (!s) return null;
+  if (/^[A-Z]{5}X$/.test(s)) return 'Mutual Funds';        /* 5 letters ending in X = mutual fund */
+  if (/^BSC[A-Z]$/.test(s)) return 'Bond / Defined Maturity ETFs';
+  if (['FPE','PGF'].includes(s)) return 'Preferred / Income ETFs';
+  if (['CEFZ','IDEV','IVE','IWD','IWF','IWL','MGC','RWK','VONG'].includes(s)) return 'ETFs (Broad / Style / Factor)';
+  if (['KRE','XLF','XLK','XLE','XLV','XLI','XLU','XLP','XLY','XLB','XLRE','XLC'].includes(s)) return 'Sector / Industry ETFs';
+  if (TICKER_SECTOR[s] || /^[A-Z]{1,5}(\.[A-Z])?$/.test(s)) return 'Individual Stocks';
+  return 'Needs Manual Classification';
+}
+
+function addToWatchlist(sym) {
+  const s = sym.trim().toUpperCase();
+  if (!s) return;
+  if (isOnWatchlist(s)) {
+    alert(`${s} is already on your watchlist.`);
+    return;
+  }
+  const cat = classifyTicker(s) || 'Needs Manual Classification';
+  if (!STATE.watchlist[cat]) STATE.watchlist[cat] = [];
+  STATE.watchlist[cat].push(s);
+  saveLS();
+  renderWatchlist();
+}
+
+function renderOpportunities() {
+  getOpportunities().then(opps => {
+    if (!opps.length) {
+      $('#opp-body').innerHTML = `<div class="opp-quiet">No high-conviction opportunity identified from today's news flow. Continue monitoring watchlist, earnings revisions, economic reports, and sector momentum.</div>`;
+      return;
+    }
+    $('#opp-body').innerHTML = opps.map(o => `
+      <div class="opp-card">
+        <h3>${o.catalyst}</h3>
+        <div class="opp-tags">
+          <span class="tag tag-cat">${o.type}</span>
+          <span class="tag tag-mkt">${o.affects}</span>
+          <span class="tag tag-cat">Horizon: ${o.horizon}</span>
+          <span class="tag tag-${o.confidence==='High'?'pos':o.confidence==='Low'?'neg':'mixed'}">Confidence: ${o.confidence}</span>
+        </div>
+        <div class="card-body">${o.reason}</div>
+        <div class="why-matters"><strong>Why it may matter:</strong> ${o.whyMatters}</div>
+        <div class="opp-grid">
+          <div><h5>Related</h5><p>${o.related}</p></div>
+          <div><h5>Bull case</h5><p>${o.bullCase}</p></div>
+          <div><h5>Bear case</h5><p>${o.bearCase}</p></div>
+          <div><h5>Key risks</h5><p>${o.risks}</p></div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:4px;font-size:12px">
+          <strong style="color:var(--accent-2)">Next research step:</strong> ${o.nextStep}
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function renderDealStrip() {
+  getDeals().then(deals => {
+    const items = deals.map(d => `<span class="item"><span class="deal">${d.cat}</span> ${d.title} <span style="color:var(--text-3)">[${d.value}]</span></span>`).join('');
+    $('#deal-strip').innerHTML = items + items;  /* duplicated for seamless scroll */
+  });
+}
+
+/* =============================================================================
+   FULL RENDER
+   ============================================================================= */
+function renderAll() {
+  renderBriefing();
+  renderSnapshot();
+  renderHeatmap();
+  renderCardSection(getHeadlines, '#headlines-grid', '#headlines-count');
+  renderCardSection(getColorado,  '#colorado-grid');
+  renderCardSection(getNational,  '#national-grid');
+  renderCardSection(getMacro,     '#macro-grid');
+  renderEconCalendar();
+  renderEarnings();
+  renderCardSection(getDeals,     '#deals-grid');
+  renderSectors();
+  renderWatchlist();
+  renderOpportunities();
+  renderDealStrip();
+  applyCollapsed();
+}
+
+/* =============================================================================
+   COLLAPSE / EXPAND
+   ============================================================================= */
+function applyCollapsed() {
+  $$('[data-toggle]').forEach(btn => {
+    const id = btn.dataset.toggle;
+    const target = document.getElementById(id);
+    if (!target) return;
+    if (STATE.collapsed.has(id)) { target.style.display = 'none'; btn.textContent = '▸'; }
+    else { target.style.display = ''; btn.textContent = '▾'; }
+  });
+}
+function toggleCollapse(id) {
+  if (STATE.collapsed.has(id)) STATE.collapsed.delete(id);
+  else STATE.collapsed.add(id);
+  saveLS();
+  applyCollapsed();
+}
+
+/* =============================================================================
+   EVENT BINDING
+   ============================================================================= */
+function bindEvents() {
+  /* Theme */
+  $('#btn-theme').onclick = () => {
+    const cur = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('news.theme', document.documentElement.dataset.theme);
+  };
+
+  /* Refresh */
+  $('#btn-refresh').onclick = () => { refreshAll(); };
+
+  /* Print / PDF */
+  $('#btn-print').onclick = () => window.print();
+
+  /* Copy briefing */
+  $('#btn-copy').onclick = async () => {
+    const text = $('#briefing').innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      $('#btn-copy').textContent = '✓ Copied';
+      setTimeout(() => $('#btn-copy').textContent = '⎘ Copy', 1500);
+    } catch (e) { alert('Copy failed: ' + e.message); }
+  };
+
+  /* Mode toggle */
+  $$('.mode-banner .mode-toggle button').forEach(b => b.onclick = () => {
+    $$('.mode-banner .mode-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    STATE.mode = b.dataset.mode;
+    const pill = $('#mode-pill');
+    pill.textContent = STATE.mode.toUpperCase();
+    pill.className = 'mode-pill ' + (STATE.mode === 'live' ? 'live' : STATE.mode === 'hybrid' ? 'hybrid' : '');
+    if (STATE.mode === 'demo') {
+      $('#mode-msg').innerHTML = 'Sample data shown. To enable live data, add keys to <code>CONFIG.apiKeys</code> and switch mode.';
+    } else if (STATE.mode === 'hybrid') {
+      $('#mode-msg').innerHTML = 'Hybrid mode — APIs used where keys are configured; demo fallback elsewhere.';
+    } else {
+      $('#mode-msg').innerHTML = 'Live mode — APIs only. Missing keys will leave sections empty.';
+    }
+  });
+
+  /* Auto-refresh */
+  $$('#autoref-toggle button').forEach(b => b.onclick = () => {
+    $$('#autoref-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const ms = parseInt(b.dataset.ref, 10);
+    if (STATE.refreshTimer) clearInterval(STATE.refreshTimer);
+    if (ms > 0) STATE.refreshTimer = setInterval(refreshAll, ms);
+  });
+
+  /* Sentiment filter */
+  $$('#filter-sentiment .chip').forEach(c => c.onclick = () => {
+    $$('#filter-sentiment .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    STATE.filters.sentiment = c.dataset.sent;
+    renderAll();
+  });
+
+  /* Sector filter */
+  $$('#filter-sector .chip').forEach(c => c.onclick = () => {
+    $$('#filter-sector .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    STATE.filters.sector = c.dataset.sec;
+    renderAll();
+  });
+
+  /* Urgency */
+  $('#filter-urgency').oninput = e => {
+    STATE.filters.minUrgency = parseInt(e.target.value, 10);
+    $('#urgency-val').textContent = e.target.value;
+    renderAll();
+  };
+
+  /* Watchlist filter */
+  $$('#filter-watchlist .chip').forEach(c => c.onclick = () => {
+    c.classList.toggle('active');
+    STATE.filters.watchlistOnly = $$('#filter-watchlist .chip')[0].classList.contains('active');
+    STATE.filters.favoritesOnly = $$('#filter-watchlist .chip')[1].classList.contains('active');
+    renderAll();
+  });
+
+  /* Search */
+  $('#global-search').oninput = e => {
+    STATE.filters.search = e.target.value;
+    renderAll();
+  };
+
+  /* Collapse / expand all */
+  $('#btn-collapse-all').onclick = () => {
+    $$('[data-toggle]').forEach(b => STATE.collapsed.add(b.dataset.toggle));
+    saveLS(); applyCollapsed();
+  };
+  $('#btn-expand-all').onclick = () => {
+    STATE.collapsed.clear();
+    saveLS(); applyCollapsed();
+  };
+
+  /* Per-section collapse */
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('[data-toggle]');
+    if (btn) toggleCollapse(btn.dataset.toggle);
+  });
+
+  /* Watchlist add */
+  $('#wl-add-btn').onclick = () => {
+    const v = $('#wl-add').value;
+    addToWatchlist(v);
+    $('#wl-add').value = '';
+  };
+  $('#wl-add').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('#wl-add-btn').click();
+  });
+
+  /* Watchlist reset */
+  $('#wl-reset').onclick = () => {
+    if (confirm('Reset watchlist to default? Custom additions will be removed.')) {
+      STATE.watchlist = structuredClone(DEFAULT_WATCHLIST);
+      saveLS();
+      renderWatchlist();
+    }
+  };
+
+  /* Section nav active tracking */
+  const navLinks = $$('.section-nav a');
+  document.addEventListener('scroll', () => {
+    const y = window.scrollY + 200;
+    let active = navLinks[0];
+    navLinks.forEach(a => {
+      const sec = document.querySelector(a.getAttribute('href'));
+      if (sec && sec.offsetTop <= y) active = a;
+    });
+    navLinks.forEach(a => a.classList.toggle('active', a === active));
+  }, { passive: true });
+}
+
+function refreshAll() {
+  DEMO.generatedAt = new Date();
+  $('#updated-time').textContent = fmtTime(DEMO.generatedAt);
+  $('#brand-date').textContent = fmtDate(DEMO.generatedAt);
+  renderAll();
+}
+
+/* =============================================================================
+   INIT
+   ============================================================================= */
+function init() {
+  /* Restore theme */
+  const t = localStorage.getItem('news.theme');
+  if (t) document.documentElement.dataset.theme = t;
+
+  /* Build date stamp */
+  $('#build-date').textContent = fmtDate(new Date());
+
+  bindEvents();
+  refreshAll();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
