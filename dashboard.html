@@ -514,6 +514,121 @@
     .ticker-strip .item .deal { color: var(--accent-2); }
     @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
+    /* ----- Chart modal (opens when a ticker is clicked) ----- */
+    .chart-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.78);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      z-index: 9000; display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .chart-overlay.open { display: flex; }
+    .chart-modal {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%; max-width: 1400px;
+      height: 100%; max-height: 92vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      overflow: hidden;
+    }
+    .chart-modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elev);
+    }
+    .chart-modal-head .symbol {
+      font-family: var(--mono); font-weight: 700; font-size: 18px;
+      color: var(--accent-2);
+    }
+    .chart-modal-head .symbol-meta {
+      font-size: 11px; color: var(--text-3);
+    }
+    .chart-modal-head .spacer { flex: 1; }
+    .chart-modal-head .close-x {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-2); width: 32px; height: 32px;
+      border-radius: var(--radius-sm); font-size: 18px; cursor: pointer;
+      line-height: 1;
+    }
+    .chart-modal-head .close-x:hover { color: var(--neg); border-color: var(--neg); }
+    .chart-modal-head .chart-search {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text-1);
+      padding: 6px 10px; border-radius: var(--radius-sm);
+      font-family: var(--mono); font-size: 12px;
+      width: 220px; outline: none; transition: border-color .15s;
+    }
+    .chart-modal-head .chart-search:focus { border-color: var(--accent); }
+    .chart-modal-head .chart-search::placeholder { color: var(--text-3); }
+    .chart-modal-head .popout-btn {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text-2);
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      font-family: var(--mono); font-size: 11px; cursor: pointer;
+      transition: all .15s;
+    }
+    .chart-modal-head .popout-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .chart-modal-head .popout-btn.popped { background: var(--accent); color: #fff; border-color: var(--accent); }
+    @media (max-width: 700px) {
+      .chart-modal-head .chart-search { width: 140px; font-size: 11px; }
+      .chart-modal-head .popout-btn { padding: 4px 8px; font-size: 10px; }
+    }
+    .chart-indicator-bar {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elev-2);
+      font-size: 11px;
+    }
+    .chart-indicator-bar .group-label {
+      font-family: var(--mono); font-size: 10px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .5px;
+      align-self: center; margin-right: 6px;
+    }
+    .ind-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-2); padding: 4px 10px;
+      border-radius: 999px; cursor: pointer;
+      font-family: var(--mono); font-size: 11px;
+      transition: all .12s;
+    }
+    .ind-btn:hover { border-color: var(--accent); color: var(--text-1); }
+    .ind-btn.active {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+    .chart-body { flex: 1; position: relative; background: var(--bg); }
+    #tradingview-chart { width: 100%; height: 100%; }
+    .chart-fallback {
+      padding: 48px 24px; text-align: center;
+      max-width: 560px; margin: 0 auto;
+      color: var(--text-2);
+    }
+    .chart-fallback h3 {
+      font-family: var(--mono); color: var(--accent-2);
+      margin-bottom: 8px; font-size: 20px;
+    }
+    .chart-fallback p { margin: 8px 0; line-height: 1.5; }
+    .chart-fallback a {
+      display: inline-block; margin: 6px 8px;
+      padding: 8px 14px;
+      background: var(--bg-elev); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--accent); text-decoration: none;
+      font-family: var(--mono); font-size: 12px;
+    }
+    .chart-fallback a:hover { border-color: var(--accent); }
+    /* Make any inline ticker chip clickable — not just watchlist tiles.
+       Any element with class="ticker" opens the chart modal on click. */
+    .ticker { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-decoration-color: var(--text-3); text-underline-offset: 3px; }
+    .ticker:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+    @media (max-width: 700px) {
+      .chart-overlay { padding: 0; }
+      .chart-modal { max-height: 100vh; border-radius: 0; }
+      .chart-indicator-bar { font-size: 10px; }
+    }
+
     @media print {
       .topbar, .section-nav, .sidebar, .ticker-strip, .mode-banner, .icon-btn { display: none !important; }
       .container { grid-template-columns: 1fr; padding: 0; }
@@ -910,7 +1025,40 @@ const TICKER_SECTOR = {
 };
 
 /* =============================================================================
-   DEMO DATA — realistic samples for May 12, 2026
+   DATE HELPERS — keep demo data fresh relative to the day the page loads
+   ============================================================================= */
+/**
+ * Return a YYYY-MM-DD string for today + N days. Used so the "Upcoming
+ * Economic Reports" and earnings calendar always show future dates,
+ * regardless of when the dashboard is opened.
+ */
+function dRel(daysAhead) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  // Local-time YYYY-MM-DD (avoid UTC shift surprises near midnight)
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+/** Full month name for today + N months (e.g., "June"). Useful for "May CPI" → current/prior month dynamically. */
+function monthName(offsetMonths) {
+  const d = new Date();
+  d.setDate(1); // pin to 1st to avoid month-end overflow (e.g., Mar 31 - 1 month = Mar 3)
+  d.setMonth(d.getMonth() + offsetMonths);
+  return d.toLocaleString('en-US', { month: 'long' });
+}
+/** Short month for compact labels (e.g., "May"). */
+function monthShort(offsetMonths) {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offsetMonths);
+  return d.toLocaleString('en-US', { month: 'short' });
+}
+
+/* =============================================================================
+   DEMO DATA — dates are generated dynamically so the dashboard always shows
+   forward-looking economic/earnings calendars, no matter when it's loaded
    ============================================================================= */
 const DEMO = {
   generatedAt: new Date(),
@@ -949,7 +1097,7 @@ const DEMO = {
 
   /* --- General Headlines --- */
   headlines: [
-    { id:'h1', title:'Fed officials hint April CPI will guide June dot-plot revisions', src:'Reuters', cat:'Markets', published:'2h ago', summary:'Three regional Fed presidents reiterated overnight that this week\'s CPI print is the key variable for the June SEP, with services ex-shelter the focus.', why:'A softer print would re-open the door to a second 2026 cut; a hot print would shift terminal-rate pricing higher.', sentiment:'mixed', urgency:8, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
+    { id:'h1', title:`Fed officials hint ${monthName(-1)} CPI will guide next dot-plot revisions`, src:'Reuters', cat:'Markets', published:'2h ago', summary:'Three regional Fed presidents reiterated overnight that this week\'s CPI print is the key variable for the next SEP, with services ex-shelter the focus.', why:'A softer print would re-open the door to a second 2026 cut; a hot print would shift terminal-rate pricing higher.', sentiment:'mixed', urgency:8, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
     { id:'h2', title:'OpenAI–Microsoft commercial terms reset talks resume', src:'The Information', cat:'Business / Tech', published:'4h ago', summary:'Negotiations over revised compute terms and IP licensing have restarted following the GPT-6 launch window slipping into Q3.', why:'Any change to MSFT\'s preferred-access terms could re-rate Azure growth assumptions and affect hyperscaler capex framing.', sentiment:'market-sensitive', urgency:8, marketSensitive:true, sector:'Technology', breaking:true, url:'#' },
     { id:'h3', title:'Treasury floats new buyback schedule, modest size', src:'Bloomberg', cat:'Markets', published:'1h ago', summary:'Quarterly refunding details show a marginal increase in 20Y supply and unchanged buybacks; auction sizes hold steady.', why:'Reduces tail risk into next week\'s 10Y/30Y auctions; supports duration on the margin.', sentiment:'positive', urgency:6, marketSensitive:true, sector:'Financials', breaking:false, url:'#' },
     { id:'h4', title:'China announces targeted property easing in tier-2 cities', src:'FT', cat:'World', published:'6h ago', summary:'Mortgage rate cuts and down-payment relaxation in 14 cities; no nationwide package.', why:'Modest commodity tailwind (copper, iron ore); limits the size of any China reflation trade.', sentiment:'mixed', urgency:6, marketSensitive:true, sector:'Materials', breaking:false, url:'#' },
@@ -988,18 +1136,21 @@ const DEMO = {
     { id:'m5', title:'Dollar index pulls back as European data firms', src:'Bloomberg', cat:'FX', published:'8h ago', summary:'German ZEW expectations and Eurozone industrial output both beat.', why:'Marginal tailwind for multinational earnings translation in upcoming reports.', sentiment:'positive', urgency:5, marketSensitive:true, sector:null, url:'#' },
   ],
 
-  /* --- Economic Calendar (upcoming) --- */
+  /* --- Economic Calendar (upcoming) ---
+     Dates are generated relative to today via dRel(N), so this list always
+     looks forward regardless of when the page is opened.
+     Spacing chosen to mimic a realistic 3-week macro calendar. */
   econCalendar: [
-    { date:'2026-05-13', time:'8:30am ET',  report:'April CPI',                       prior:'3.1% YoY',   consensus:'3.0% YoY',   importance:'High',   why:'Single most important macro print this month; will set tone for Fed June SEP.', sectors:'All', watchlist:'All' },
-    { date:'2026-05-14', time:'8:30am ET',  report:'April PPI',                       prior:'2.5% YoY',   consensus:'2.4% YoY',   importance:'High',   why:'Confirms or complicates CPI; goods-component watched for tariff pass-through.', sectors:'Materials, Industrials, Staples', watchlist:'CTVA, LIN' },
-    { date:'2026-05-14', time:'8:30am ET',  report:'Initial Jobless Claims',          prior:'212K',       consensus:'215K',       importance:'Med',    why:'Weekly read on labor market firmness.', sectors:'Consumer', watchlist:'TJX, COST' },
-    { date:'2026-05-15', time:'8:30am ET',  report:'April Retail Sales',              prior:'+0.4% MoM',  consensus:'+0.3% MoM',  importance:'High',   why:'Consumer health barometer; control group is what feeds GDP.', sectors:'Consumer Disc., Staples', watchlist:'WMT, COST, AMZN, TJX' },
-    { date:'2026-05-15', time:'9:15am ET',  report:'Industrial Production (April)',   prior:'-0.4% MoM',  consensus:'+0.2% MoM',  importance:'Med',    why:'Capacity utilization read for cap-goods cycle.', sectors:'Industrials, Materials', watchlist:'GE, EMR, JCI' },
-    { date:'2026-05-16', time:'10:00am ET', report:'UMich Consumer Sentiment (May P)',prior:'67.4',       consensus:'68.0',       importance:'Med',    why:'Inflation expectations component is the Fed-relevant piece.', sectors:'Consumer', watchlist:'WMT, KR, TJX' },
-    { date:'2026-05-21', time:'2:00pm ET',  report:'FOMC Minutes (April meeting)',    prior:'—',          consensus:'—',          importance:'High',   why:'Dot-plot internal range and balance-sheet language.', sectors:'All', watchlist:'All' },
-    { date:'2026-05-23', time:'10:00am ET', report:'New Home Sales (April)',          prior:'693K',       consensus:'680K',       importance:'Med',    why:'Builder demand barometer; rates-sensitive.', sectors:'Real Estate, Industrials', watchlist:'SPG, WELL' },
-    { date:'2026-05-30', time:'8:30am ET',  report:'PCE Inflation (April)',           prior:'2.7% YoY',   consensus:'2.6% YoY',   importance:'High',   why:'Fed\'s preferred inflation gauge.', sectors:'All', watchlist:'All' },
-    { date:'2026-05-30', time:'8:30am ET',  report:'Personal Income & Spending (Apr)',prior:'+0.5% MoM',  consensus:'+0.4% MoM',  importance:'Med',    why:'Savings rate and wage income piece for consumer thesis.', sectors:'Consumer', watchlist:'WMT, COST' },
+    { date:dRel(2),  time:'8:30am ET',  report:`${monthName(-1)} CPI`,                       prior:'3.1% YoY',   consensus:'3.0% YoY',   importance:'High',   why:'Single most important macro print this month; will set tone for Fed SEP.', sectors:'All', watchlist:'All' },
+    { date:dRel(3),  time:'8:30am ET',  report:`${monthName(-1)} PPI`,                       prior:'2.5% YoY',   consensus:'2.4% YoY',   importance:'High',   why:'Confirms or complicates CPI; goods-component watched for tariff pass-through.', sectors:'Materials, Industrials, Staples', watchlist:'CTVA, LIN' },
+    { date:dRel(4),  time:'8:30am ET',  report:'Initial Jobless Claims',                     prior:'212K',       consensus:'215K',       importance:'Med',    why:'Weekly read on labor market firmness.', sectors:'Consumer', watchlist:'TJX, COST' },
+    { date:dRel(9),  time:'8:30am ET',  report:`${monthName(-1)} Retail Sales`,              prior:'+0.4% MoM',  consensus:'+0.3% MoM',  importance:'High',   why:'Consumer health barometer; control group is what feeds GDP.', sectors:'Consumer Disc., Staples', watchlist:'WMT, COST, AMZN, TJX' },
+    { date:dRel(9),  time:'9:15am ET',  report:`Industrial Production (${monthShort(-1)})`,  prior:'-0.4% MoM',  consensus:'+0.2% MoM',  importance:'Med',    why:'Capacity utilization read for cap-goods cycle.', sectors:'Industrials, Materials', watchlist:'GE, EMR, JCI' },
+    { date:dRel(11), time:'10:00am ET', report:`UMich Consumer Sentiment (${monthShort(0)} P)`, prior:'67.4',    consensus:'68.0',       importance:'Med',    why:'Inflation expectations component is the Fed-relevant piece.', sectors:'Consumer', watchlist:'WMT, KR, TJX' },
+    { date:dRel(15), time:'2:00pm ET',  report:'FOMC Minutes (prior meeting)',               prior:'—',          consensus:'—',          importance:'High',   why:'Dot-plot internal range and balance-sheet language.', sectors:'All', watchlist:'All' },
+    { date:dRel(18), time:'10:00am ET', report:`New Home Sales (${monthShort(-1)})`,         prior:'693K',       consensus:'680K',       importance:'Med',    why:'Builder demand barometer; rates-sensitive.', sectors:'Real Estate, Industrials', watchlist:'SPG, WELL' },
+    { date:dRel(23), time:'8:30am ET',  report:`PCE Inflation (${monthShort(-1)})`,          prior:'2.7% YoY',   consensus:'2.6% YoY',   importance:'High',   why:'Fed\'s preferred inflation gauge.', sectors:'All', watchlist:'All' },
+    { date:dRel(23), time:'8:30am ET',  report:`Personal Income & Spending (${monthShort(-1)})`, prior:'+0.5% MoM', consensus:'+0.4% MoM', importance:'Med',  why:'Savings rate and wage income piece for consumer thesis.', sectors:'Consumer', watchlist:'WMT, COST' },
   ],
 
   /* --- Earnings --- */
@@ -1013,10 +1164,10 @@ const DEMO = {
     { ticker:'WMT',  name:'Walmart',        sector:'Consumer Staples', time:'BMO', epsEst:0.52, epsPrior:0.60, revEst:'$159.6B', revisionDir:'positive', note:'Comps and gross margin direction; advertising growth', watchlist:true },
   ],
   earningsWeek: [
-    { ticker:'NVDA', name:'NVIDIA',        sector:'Technology', date:'2026-05-22', epsEst:0.74, epsPrior:0.61, revEst:'$28.1B', revisionDir:'positive', note:'Data center sequencing; sovereign AI commentary',     watchlist:true },
-    { ticker:'TGT',  name:'Target',        sector:'Consumer Discretionary', date:'2026-05-21', epsEst:2.07, epsPrior:2.03, revEst:'$24.5B', revisionDir:'flat',     note:'Discretionary vs essentials mix',                       watchlist:false },
-    { ticker:'PANW', name:'Palo Alto',     sector:'Technology', date:'2026-05-19', epsEst:1.59, epsPrior:1.32, revEst:'$2.16B', revisionDir:'positive', note:'Platformization NRR; billings cadence',                watchlist:false },
-    { ticker:'INTU', name:'Intuit',        sector:'Technology', date:'2026-05-22', epsEst:9.38, epsPrior:9.88, revEst:'$6.81B', revisionDir:'flat',     note:'Small-business segment and TurboTax season wrap',      watchlist:false },
+    { ticker:'NVDA', name:'NVIDIA',        sector:'Technology', date:dRel(3), epsEst:0.74, epsPrior:0.61, revEst:'$28.1B', revisionDir:'positive', note:'Data center sequencing; sovereign AI commentary',     watchlist:true },
+    { ticker:'TGT',  name:'Target',        sector:'Consumer Discretionary', date:dRel(2), epsEst:2.07, epsPrior:2.03, revEst:'$24.5B', revisionDir:'flat',     note:'Discretionary vs essentials mix',                       watchlist:false },
+    { ticker:'PANW', name:'Palo Alto',     sector:'Technology', date:dRel(2), epsEst:1.59, epsPrior:1.32, revEst:'$2.16B', revisionDir:'positive', note:'Platformization NRR; billings cadence',                watchlist:false },
+    { ticker:'INTU', name:'Intuit',        sector:'Technology', date:dRel(3), epsEst:9.38, epsPrior:9.88, revEst:'$6.81B', revisionDir:'flat',     note:'Small-business segment and TurboTax season wrap',      watchlist:false },
   ],
   earningsRevisionsTop: [
     { ticker:'NVDA', dir:'up',   pct:+4.2, note:'Street raising Q2/Q3 DC revenue; supply commentary positive',     watchlist:true,  sector:'Technology' },
@@ -1038,7 +1189,7 @@ const DEMO = {
 
   /* --- Watchlist alerts (will be auto-augmented by news linkage) --- */
   watchlistAlertsSeed: [
-    { ticker:'NVDA',  headline:'Street raising Q2/Q3 estimates ahead of May 22 print; sovereign AI deals ramp', why:'Earnings revisions and product cycle aligning into the print; expectations setup is the key risk.',     sentiment:'positive', urgency:8, source:'JPM, MS notes' },
+    { ticker:'NVDA',  headline:`Street raising Q2/Q3 estimates ahead of ${new Date(dRel(3)).toLocaleDateString('en-US',{month:'short',day:'numeric'})} print; sovereign AI deals ramp`, why:'Earnings revisions and product cycle aligning into the print; expectations setup is the key risk.',     sentiment:'positive', urgency:8, source:'JPM, MS notes' },
     { ticker:'LLY',   headline:'Mounjaro volumes pacing ahead; sell-side pulling out-year estimates',           why:'Continued upward estimate revisions support the multiple even as the obesity-drug debate matures.',   sentiment:'positive', urgency:7, source:'GS, MS notes' },
     { ticker:'TJX',   headline:'TJX reports BMO; comp-store trends watched for trade-down evidence',            why:'Off-price thesis remains intact through consumer trade-down; quarter is a key checkpoint.',           sentiment:'mixed',    urgency:7, source:'Earnings preview' },
     { ticker:'WMT',   headline:'Walmart reports tomorrow BMO; advertising and grocery comps in focus',          why:'Ad business and membership monetization are the structural re-rating drivers, not headline EPS.',      sentiment:'mixed',    urgency:8, source:'Earnings preview' },
@@ -1065,7 +1216,7 @@ const DEMO = {
     {
       type:'Risk hedge idea',
       affects:'Watchlist broad equity exposure',
-      catalyst:'CPI risk tomorrow (May 13); thin sentiment cushion after AAII normalization',
+      catalyst:`CPI risk in days (${new Date(dRel(2)).toLocaleDateString('en-US',{month:'short',day:'numeric'})}); thin sentiment cushion after AAII normalization`,
       reason:'Vol is low (VIX ~14.6) and event risk into CPI is meaningful; cost of a short-dated put hedge is reasonable relative to potential dispersion.',
       whyMatters:'Asymmetric event into a binary print with low vol pricing; one of the cheaper hedging windows of the quarter.',
       related:'Index puts (SPY/QQQ), individual mega-cap protection where exposure is concentrated.',
@@ -1235,15 +1386,19 @@ function applyFilters(items) {
    RENDERERS
    ============================================================================= */
 function renderBriefing() {
+  // Inline date labels for the briefing — recomputed each render so they
+  // always reflect today's calendar (e.g., "Jun 23" instead of a stale "May 13").
+  const cpiLabel  = new Date(dRel(2)).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  const nvdaLabel = new Date(dRel(3)).toLocaleDateString('en-US', { month:'short', day:'numeric' });
   const top5 = DEMO.headlines.slice(0,5);
   const risks = [
-    'Hot CPI print (May 13) re-prices Fed cuts and pressures rate-sensitive sectors',
+    `Hot CPI print (${cpiLabel}) re-prices Fed cuts and pressures rate-sensitive sectors`,
     'Office REIT credit / vacancy data continues to weaken — watch SPG read-through',
     'OPEC+ patience on cuts keeps oil soft and pressures refiners (VLO, SHEL)'
   ];
   const opps = [
     'AI power-demand thesis (GEV, ETR, PPL) — backlog firming, multi-year cycle',
-    'NVDA into May 22 print — estimate revisions still trending up; expectations bar is elevated',
+    `NVDA into ${nvdaLabel} print — estimate revisions still trending up; expectations bar is elevated`,
     'BulletShares 2026 (BSCQ) maturity decision — duration risk minimal; reinvestment plan needed'
   ];
   const sectorLeaders = ['Technology (AI capex)','Utilities (power demand)','Communication Services (ad pricing)'];
@@ -1265,14 +1420,14 @@ function renderBriefing() {
     </div>
     <div class="briefing-block">
       <h4>Most Important Economic Report</h4>
-      <ul><li><strong>April CPI</strong> — May 13, 8:30am ET. Consensus 3.0% YoY. Services ex-shelter is the swing factor.</li></ul>
+      <ul><li><strong>${monthName(-1)} CPI</strong> — ${cpiLabel}, 8:30am ET. Consensus 3.0% YoY. Services ex-shelter is the swing factor.</li></ul>
     </div>
     <div class="briefing-block">
       <h4>Earnings to Watch</h4>
       <ul>
         <li><span class="ticker">WMT</span> — tomorrow BMO; advertising and grocery comps in focus</li>
         <li><span class="ticker">TJX</span> — today BMO; trade-down evidence</li>
-        <li><span class="ticker">NVDA</span> — May 22; sovereign AI deals and supply commentary</li>
+        <li><span class="ticker">NVDA</span> — ${nvdaLabel}; sovereign AI deals and supply commentary</li>
       </ul>
     </div>
     <div class="briefing-block">
@@ -1615,6 +1770,126 @@ function renderAll() {
   renderOpportunities();
   renderDealStrip();
   applyCollapsed();
+  /* After all sections render, walk the DOM and wrap recognized tickers
+     in <span class="ticker"> so they become click-to-chart. */
+  setTimeout(() => linkifyTickersInDOM(document.querySelector('main')), 0);
+}
+
+/* =============================================================================
+   TICKER LINKIFICATION — find ticker mentions in any rendered text and wrap
+   them in clickable spans so users can click ANY ticker on the dashboard
+   (not just watchlist tiles) to open a chart.
+   ============================================================================= */
+
+/* Curated universe of large-cap stocks + major ETFs that may appear in
+   demo headlines, alerts, and analysis text. The watchlist's tickers are
+   merged in dynamically via flatWatchlist(). Add more here as needed. */
+const EXTRA_TICKERS = new Set([
+  /* Mega-cap not already in watchlist */
+  'TSLA','BABA','ORCL','ADBE','CRM','PEP','KO','MCD','SBUX','NKE','DIS',
+  'XOM','CVX','OXY','SLB','EOG','PSX','MPC','HES','COP',
+  'UNH','JNJ','PFE','ABBV','TMO','DHR','ABT','BMY','AMGN','GILD','VRTX','REGN','MRNA',
+  'V','MA','AXP','PYPL','SQ','COF','USB','TFC','PNC','SCHW',
+  'HD','LOW','TGT','DG','DLTR','ULTA','LULU','CMG','YUM','ROST',
+  'BA','LMT','NOC','GD','HII','LHX','TDG','FDX','UPS','CSX','UNP','NSC','DAL','UAL','LUV',
+  'CAT','DE','PH','ITW','ROK','HON','MMM','ETN','PCAR',
+  'AMD','INTC','TSM','MU','SMCI','SNPS','CDNS','ASML','KLAC','AMAT','MRVL','QCOM','TXN','ON','MCHP','ADI','NXPI',
+  'CRWD','SNOW','NET','DDOG','ZS','PANW','OKTA','FTNT','S','MDB','TEAM','NOW','WDAY','INTU','ADP','PAYX',
+  'SHOP','SQ','SE','MELI','UBER','LYFT','ABNB','DASH','BKNG','EXPE','RBLX','EA','TTWO','SPOT','SNAP','PINS','RDDT',
+  'XLK','XLF','XLE','XLV','XLI','XLU','XLP','XLY','XLB','XLRE','XLC',
+  'SPY','VOO','IVV','QQQ','DIA','IWM','VTI','VEA','VWO','EFA','EEM','XBI','SMH','SOXX','IBB','ARKK',
+  'TLT','IEF','SHY','AGG','BND','HYG','JNK','LQD','EMB','TIP',
+  'GLD','SLV','USO','UNG','DBC','DBA','GDX','GDXJ',
+  'F','GM','T','V','C','M','K','BAC','BX','BLK',  /* short tickers */
+]);
+
+/* Tokens that LOOK like tickers but never should be linkified (acronyms,
+   abbreviations, units). Anything in this deny-list is always skipped. */
+const TICKER_DENYLIST = new Set([
+  'CEO','CFO','CTO','CIO','COO','EVP','SVP','VP','GM',
+  'USA','EU','UK','US','UN','EU','ECB','BOJ','BOE','BOC','RBA','RBNZ','PBOC','SNB','BIS','IMF','OECD',
+  'GDP','CPI','PPI','PCE','PMI','ISM','FOMC','SEP','SLOOS','JOLTS','UMich',
+  'AI','ML','IT','HR','PR','AR','IR','QA','UX','UI','API','SDK','GAAP','EBITDA','EBIT','EPS','FCF','ROI','ROE','ROA','ROIC','WACC','NPV','IRR','DCF','LBO','IPO','PE','M&A',
+  'ETF','ETN','REIT','MLP','BDC','CEF','SaaS','PaaS','IaaS',
+  'NYSE','NASDAQ','BMO','AMC','BMO','AMC','OTC',
+  'OPEC','MENA','EMEA','APAC','LATAM','LATAM',
+  'MoM','YoY','QoQ','WoW','YTD','MTD','QTD','TTM','LTM','LFL','SSS','GMV','ARR','MRR','NRR','LTV','CAC','TAM','SAM','SOM',
+  'CFRA','SEC','FDA','FCC','FTC','DOJ','DOE','DOD','DHS','FBI','CIA','NSA','EPA','IRS','OFAC','GAO','CBO','NHTSA','NTSB','FAA','EEOC','OSHA',
+  'Q1','Q2','Q3','Q4','H1','H2','FY','CY','YE','MM','BN','TR','BB','AAA','AA','BBB','CCC','CC','DD',
+  'CRM','TMS','ERP','EBITDA',
+  'AAII','VIX','DXY','OAS','LIBOR','SOFR','OIS','EFFR','TGA','ON','RRP','TGA','RRP',
+  'AMD',  /* AMD is also a ticker — handle separately if a sentence about AMD context lacks ticker meaning */
+]);
+/* Remove AMD from denylist since it IS a major ticker */
+TICKER_DENYLIST.delete('AMD');
+TICKER_DENYLIST.delete('CRM');  /* Salesforce ticker */
+
+/* Build the active linkify set from extras + current watchlist. Re-built
+   on each render so newly-added tickers become clickable in narrative text. */
+function buildKnownTickers() {
+  const set = new Set(EXTRA_TICKERS);
+  try {
+    flatWatchlist().forEach(t => set.add(t.toUpperCase()));
+  } catch {}
+  /* Always remove anything in the denylist (defense in depth) */
+  for (const dl of TICKER_DENYLIST) set.delete(dl);
+  return set;
+}
+
+/* Pattern for potential tickers: 2-5 uppercase letters, optionally
+   followed by .X (e.g., BRK.B). Word boundaries keep us out of words. */
+const TICKER_PATTERN = /\b([A-Z]{2,5}(?:\.[A-Z])?)\b/g;
+
+function linkifyTickersInDOM(root) {
+  if (!root) return;
+  const known = buildKnownTickers();
+  /* TreeWalker over text nodes only. Skip text inside elements where
+     a click would conflict (already-clickable tickers, buttons, links,
+     interactive controls, script/style). */
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n) {
+      const p = n.parentElement;
+      if (!p) return NodeFilter.FILTER_REJECT;
+      if (p.closest('.ticker, .ticker-tile, button, a, input, textarea, select, script, style, .chart-overlay')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      if (!TICKER_PATTERN.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+      TICKER_PATTERN.lastIndex = 0; /* reset for next test */
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  /* Collect nodes first (modifying during walk would invalidate the iterator) */
+  const candidates = [];
+  let n;
+  while ((n = walker.nextNode())) candidates.push(n);
+
+  for (const textNode of candidates) {
+    const text = textNode.nodeValue;
+    let lastIndex = 0;
+    let m;
+    let didLinkify = false;
+    const frag = document.createDocumentFragment();
+    TICKER_PATTERN.lastIndex = 0;
+    while ((m = TICKER_PATTERN.exec(text)) !== null) {
+      const sym = m[1];
+      if (!known.has(sym)) continue;
+      if (m.index > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, m.index)));
+      }
+      const span = document.createElement('span');
+      span.className = 'ticker';
+      span.textContent = sym;
+      frag.appendChild(span);
+      lastIndex = m.index + sym.length;
+      didLinkify = true;
+    }
+    if (!didLinkify) continue;
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+    textNode.parentNode.replaceChild(frag, textNode);
+  }
 }
 
 /* =============================================================================
@@ -1797,5 +2072,578 @@ function init() {
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- =========================================================================
+     CHART MODAL — opens when a ticker is clicked
+     Uses TradingView's free Advanced Chart widget (loaded on demand).
+     ========================================================================= -->
+<div class="chart-overlay" id="chart-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="chart-modal">
+    <div class="chart-modal-head">
+      <span class="symbol" id="chart-symbol">—</span>
+      <span class="symbol-meta" id="chart-symbol-meta"></span>
+      <input class="chart-search" id="chart-search" placeholder="Look up symbol… (e.g., TSLA)" spellcheck="false" autocomplete="off" />
+      <span class="spacer"></span>
+      <button class="popout-btn" id="chart-popout" title="Open chart in separate window (e.g., for a second monitor)">↗ Pop Out</button>
+      <button class="close-x" id="chart-close" title="Close (Esc)">×</button>
+    </div>
+    <div class="chart-indicator-bar" id="chart-indicator-bar"></div>
+    <div class="chart-body">
+      <div id="tradingview-chart"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============================================================================
+   STOCK CHARTING — click any ticker to open an interactive chart with
+   toggleable technical indicators. Powered by TradingView's free widget.
+   ============================================================================= */
+
+/* Indicators TradingView supports natively, grouped logically. Keys are display
+   labels; values are TradingView study IDs that get passed in the widget config. */
+const TV_INDICATOR_GROUPS = {
+  Trend:      { 'SMA':'MASimple@tv-basicstudies', 'EMA':'MAExp@tv-basicstudies', 'Bollinger':'BB@tv-basicstudies', 'Ichimoku':'IchimokuCloud@tv-basicstudies', 'VWAP':'VWAP@tv-basicstudies', 'Parabolic SAR':'PSAR@tv-basicstudies' },
+  Momentum:   { 'RSI':'RSI@tv-basicstudies', 'MACD':'MACD@tv-basicstudies', 'Stochastic':'Stochastic@tv-basicstudies', 'ROC':'ROC@tv-basicstudies', 'MFI':'MF@tv-basicstudies', 'CCI':'CCI@tv-basicstudies', 'Williams %R':'WilliamR@tv-basicstudies' },
+  Volatility: { 'ATR':'ATR@tv-basicstudies', 'Keltner':'KLTNR@tv-basicstudies' },
+  Volume:     { 'Volume':'Volume@tv-basicstudies', 'OBV':'OBV@tv-basicstudies', 'CMF':'ChaikinMoneyFlow@tv-basicstudies' },
+  Direction:  { 'ADX':'DM@tv-basicstudies', 'Aroon':'aroon@tv-basicstudies' },
+};
+/* Flatten into one lookup map */
+const TV_INDICATORS = Object.values(TV_INDICATOR_GROUPS).reduce((acc, g) => Object.assign(acc, g), {});
+
+/* Default indicators a new user sees on first open. Override by toggling. */
+const DEFAULT_CHART_INDICATORS = ['Volume', 'SMA', 'RSI', 'MACD'];
+
+/* Mutual-fund detection: 5 letters ending in X (same rule as the watchlist classifier). */
+function isMutualFundTicker(t) { return /^[A-Z]{5}X$/.test(t); }
+
+/* Persist user's indicator picks across sessions. */
+function loadChartIndicators() {
+  try {
+    const raw = localStorage.getItem('chartIndicators');
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CHART_INDICATORS.slice();
+  } catch { return DEFAULT_CHART_INDICATORS.slice(); }
+}
+function saveChartIndicators(arr) {
+  try { localStorage.setItem('chartIndicators', JSON.stringify(arr)); } catch {}
+}
+
+/* Inject the TradingView library on first use. Cached afterward. */
+let tvLibPromise = null;
+function ensureTradingView() {
+  if (window.TradingView) return Promise.resolve();
+  if (tvLibPromise) return tvLibPromise;
+  tvLibPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://s3.tradingview.com/tv.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load TradingView library'));
+    document.head.appendChild(s);
+  });
+  return tvLibPromise;
+}
+
+let currentChartTicker = null;
+/* Reference to the pop-out window (null when closed/unopened). */
+let popoutWin = null;
+
+/** True if a pop-out chart window is currently open and reachable. */
+function isPopoutOpen() {
+  return !!(popoutWin && !popoutWin.closed);
+}
+
+function openChart(ticker) {
+  if (!ticker) return;
+  const sym = ticker.toUpperCase().trim();
+  currentChartTicker = sym;
+
+  /* If a pop-out window is open, route the chart there and bring it forward
+     instead of opening the modal. User stays focused on the dashboard. */
+  if (isPopoutOpen()) {
+    try {
+      popoutWin.loadTicker(sym);
+      popoutWin.focus();
+      return;
+    } catch (err) {
+      /* Popup may have lost script context — fall through to modal */
+      console.warn('Pop-out unreachable, opening modal instead:', err);
+      popoutWin = null;
+    }
+  }
+
+  /* Otherwise, open the inline modal */
+  const overlay = document.getElementById('chart-overlay');
+  document.getElementById('chart-symbol').textContent = sym;
+  const sector = (typeof TICKER_SECTOR !== 'undefined') && TICKER_SECTOR[sym];
+  document.getElementById('chart-symbol-meta').textContent = sector ? `· ${sector}` : '';
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  renderIndicatorBar();
+
+  if (isMutualFundTicker(sym)) {
+    renderChartFallback(sym);
+    return;
+  }
+  renderChart(sym);
+}
+
+function closeChart() {
+  const overlay = document.getElementById('chart-overlay');
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  /* Wipe the chart container so we don't accumulate widget instances */
+  const container = document.getElementById('tradingview-chart');
+  if (container) container.innerHTML = '';
+  currentChartTicker = null;
+}
+
+function renderChart(ticker) {
+  const container = document.getElementById('tradingview-chart');
+  container.innerHTML = '';
+  const active = loadChartIndicators();
+  const studies = active.map(name => TV_INDICATORS[name]).filter(Boolean);
+  const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+
+  ensureTradingView().then(() => {
+    /* eslint-disable-next-line no-new */
+    new TradingView.widget({
+      autosize: true,
+      symbol: ticker,
+      interval: 'D',
+      timezone: 'America/New_York',
+      theme,
+      style: '1',                  /* candlesticks */
+      locale: 'en',
+      toolbar_bg: 'transparent',
+      enable_publishing: false,
+      allow_symbol_change: true,
+      hide_side_toolbar: false,
+      withdateranges: true,
+      details: true,
+      hotlist: false,
+      calendar: false,
+      studies,
+      container_id: 'tradingview-chart',
+    });
+  }).catch(err => {
+    container.innerHTML = `<div class="chart-fallback">
+      <h3>Chart unavailable</h3>
+      <p>Couldn't load the charting library. Check your internet connection and try again.</p>
+      <p style="font-size:11px;color:var(--text-3)">${err.message}</p>
+    </div>`;
+  });
+}
+
+function renderChartFallback(ticker) {
+  const container = document.getElementById('tradingview-chart');
+  container.innerHTML = `
+    <div class="chart-fallback">
+      <h3>${ticker} — Mutual Fund</h3>
+      <p>TradingView doesn't cover most U.S. mutual funds. Open the fund on one of these platforms instead:</p>
+      <p>
+        <a href="https://www.morningstar.com/funds/xnas/${ticker}/quote" target="_blank" rel="noopener">Morningstar →</a>
+        <a href="https://finance.yahoo.com/quote/${ticker}" target="_blank" rel="noopener">Yahoo Finance →</a>
+        <a href="https://www.google.com/finance/quote/${ticker}:MUTF" target="_blank" rel="noopener">Google Finance →</a>
+      </p>
+      <p style="font-size:11px;color:var(--text-3);margin-top:24px">
+        Tip: For ETF-equivalent exposure that <em>does</em> chart on TradingView, see the fund's prospectus benchmark
+        (e.g., S&amp;P 500 = SPY/IVV/VOO; Total Bond Market = AGG/BND).
+      </p>
+    </div>`;
+}
+
+function renderIndicatorBar() {
+  const bar = document.getElementById('chart-indicator-bar');
+  const active = loadChartIndicators();
+  bar.innerHTML = Object.entries(TV_INDICATOR_GROUPS).map(([group, items]) => {
+    const buttons = Object.keys(items).map(name => `
+      <button class="ind-btn ${active.includes(name) ? 'active' : ''}" data-ind="${name}">${name}</button>
+    `).join('');
+    return `<span class="group-label">${group}</span>${buttons}`;
+  }).join('<span style="width:8px"></span>');
+
+  bar.querySelectorAll('.ind-btn').forEach(btn => {
+    btn.onclick = () => {
+      const name = btn.dataset.ind;
+      let arr = loadChartIndicators();
+      if (arr.includes(name)) arr = arr.filter(x => x !== name);
+      else arr.push(name);
+      saveChartIndicators(arr);
+      renderIndicatorBar();
+      /* Skip re-render for mutual funds (no chart to update) */
+      if (currentChartTicker && !isMutualFundTicker(currentChartTicker)) {
+        renderChart(currentChartTicker);
+      }
+    };
+  });
+}
+
+/* =============================================================================
+   POP-OUT WINDOW — opens the chart in a separate browser window so the user
+   can park it on a second monitor and continue browsing the dashboard.
+   ============================================================================= */
+
+/**
+ * Open (or focus) the pop-out chart window and load the given ticker.
+ * Must be called inside a user-gesture handler (e.g., a button click)
+ * so the browser doesn't block the popup.
+ */
+function openChartPopout(initialTicker) {
+  const sym = (initialTicker || currentChartTicker || 'SPY').toUpperCase();
+
+  /* If already open, just navigate to the new symbol and focus it */
+  if (isPopoutOpen()) {
+    try {
+      popoutWin.loadTicker(sym);
+      popoutWin.focus();
+      return;
+    } catch { popoutWin = null; }
+  }
+
+  const features = 'width=1300,height=900,left=150,top=80,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no';
+  popoutWin = window.open('', 'alanStockChart', features);
+  if (!popoutWin) {
+    alert('Pop-out blocked. Please allow popups for this page in your browser, then try again.');
+    return;
+  }
+  /* Write the self-contained chart page into the popup */
+  const html = buildPopoutHTML(sym);
+  popoutWin.document.open();
+  popoutWin.document.write(html);
+  popoutWin.document.close();
+  popoutWin.focus();
+
+  /* Close the modal in the main window (the popup replaces it) */
+  closeChart();
+  /* Reflect "popped" state on the modal button next time the modal opens */
+  document.getElementById('chart-popout').classList.add('popped');
+}
+
+/**
+ * Generate the complete HTML for the pop-out window. Self-contained:
+ * loads TradingView, has its own search input, indicator bar, and chart.
+ * Exposes window.loadTicker() so the parent can update it later.
+ */
+function buildPopoutHTML(initialTicker) {
+  const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const indicatorGroupsJSON = JSON.stringify(TV_INDICATOR_GROUPS);
+  const defaultIndicatorsJSON = JSON.stringify(DEFAULT_CHART_INDICATORS);
+  /* Build the popup as a complete HTML string. CSS is inlined for portability.
+     We intentionally keep styling close to the main dashboard's dark/light theme. */
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="${theme}">
+<head>
+<meta charset="UTF-8">
+<title>Stock Chart — Alan's Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0e1a; --bg-elev: #131826; --bg-elev-2: #1a1f2e;
+    --border: #1e2638; --text-1: #e4e7eb; --text-2: #a3acbf; --text-3: #6b7283;
+    --accent: #00d4aa; --accent-2: #4f9cf9; --neg: #ef4444;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  html[data-theme="light"] {
+    --bg: #f7f8fa; --bg-elev: #ffffff; --bg-elev-2: #f0f2f5;
+    --border: #e5e7eb; --text-1: #111827; --text-2: #4b5563; --text-3: #9ca3af;
+    --accent: #0891b2; --accent-2: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text-1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  .head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-elev); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sym { font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--accent-2); min-width: 70px; }
+  .meta { font-size: 11px; color: var(--text-3); }
+  .search {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text-1);
+    padding: 6px 10px; border-radius: 4px;
+    font-family: var(--mono); font-size: 12px; width: 200px; outline: none;
+  }
+  .search:focus { border-color: var(--accent); }
+  .search::placeholder { color: var(--text-3); }
+  .spacer { flex: 1; }
+  .theme-toggle, .close-btn {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text-2);
+    padding: 6px 10px; border-radius: 4px; font-family: var(--mono); font-size: 11px; cursor: pointer;
+  }
+  .theme-toggle:hover, .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .close-btn:hover { color: var(--neg); border-color: var(--neg); }
+  .indbar {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 8px 14px;
+    background: var(--bg-elev-2); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .group-lbl { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; align-self: center; margin-right: 4px; }
+  .ind-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-2);
+    padding: 3px 9px; border-radius: 999px; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; transition: all .12s;
+  }
+  .ind-btn:hover { color: var(--text-1); border-color: var(--accent); }
+  .ind-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chart { flex: 1; min-height: 0; }
+  #tradingview-chart { width: 100%; height: 100%; }
+  .fallback { padding: 48px 24px; text-align: center; max-width: 560px; margin: 0 auto; color: var(--text-2); }
+  .fallback h3 { font-family: var(--mono); color: var(--accent-2); margin-bottom: 8px; }
+  .fallback a {
+    display: inline-block; margin: 6px 8px; padding: 8px 14px;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 12px;
+  }
+  .fallback a:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="head">
+  <span class="sym" id="sym">—</span>
+  <span class="meta" id="meta"></span>
+  <input class="search" id="search" placeholder="Look up symbol… (e.g., TSLA)" spellcheck="false" autocomplete="off" />
+  <span class="spacer"></span>
+  <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light">◐</button>
+  <button class="close-btn" id="close-btn" title="Close window">×</button>
+</div>
+<div class="indbar" id="indbar"></div>
+<div class="chart"><div id="tradingview-chart"></div></div>
+
+<script>
+  /* ===== Shared with parent: indicator config and prefs ===== */
+  const TV_INDICATOR_GROUPS = ${indicatorGroupsJSON};
+  const TV_INDICATORS = Object.values(TV_INDICATOR_GROUPS).reduce((acc, g) => Object.assign(acc, g), {});
+  const DEFAULT_CHART_INDICATORS = ${defaultIndicatorsJSON};
+
+  /* Read/write indicator prefs from the OPENER's localStorage so they
+     stay in sync with the main dashboard's modal selections. */
+  function loadInds() {
+    try {
+      const raw = window.opener && !window.opener.closed && window.opener.localStorage.getItem('chartIndicators');
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CHART_INDICATORS.slice();
+    } catch { return DEFAULT_CHART_INDICATORS.slice(); }
+  }
+  function saveInds(arr) {
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.localStorage.setItem('chartIndicators', JSON.stringify(arr));
+      }
+    } catch {}
+  }
+
+  function isMutualFundTicker(t) { return /^[A-Z]{5}X$/.test(t); }
+
+  let currentTicker = null;
+  let tvPromise = null;
+  function ensureTradingView() {
+    if (window.TradingView) return Promise.resolve();
+    if (tvPromise) return tvPromise;
+    tvPromise = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://s3.tradingview.com/tv.js';
+      s.onload = () => res();
+      s.onerror = () => rej(new Error('TradingView library failed to load'));
+      document.head.appendChild(s);
+    });
+    return tvPromise;
+  }
+
+  function renderChart(ticker) {
+    currentTicker = ticker;
+    document.getElementById('sym').textContent = ticker;
+    document.title = ticker + ' — Stock Chart';
+    const container = document.getElementById('tradingview-chart');
+    container.innerHTML = '';
+    if (isMutualFundTicker(ticker)) {
+      container.innerHTML =
+        '<div class="fallback">' +
+        '<h3>' + ticker + ' — Mutual Fund</h3>' +
+        '<p>TradingView doesn\\'t cover most U.S. mutual funds. Try:</p>' +
+        '<p>' +
+          '<a href="https://www.morningstar.com/funds/xnas/' + ticker + '/quote" target="_blank" rel="noopener">Morningstar →</a>' +
+          '<a href="https://finance.yahoo.com/quote/' + ticker + '" target="_blank" rel="noopener">Yahoo Finance →</a>' +
+          '<a href="https://www.google.com/finance/quote/' + ticker + ':MUTF" target="_blank" rel="noopener">Google Finance →</a>' +
+        '</p></div>';
+      return;
+    }
+    const studies = loadInds().map(n => TV_INDICATORS[n]).filter(Boolean);
+    const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    ensureTradingView().then(() => {
+      new TradingView.widget({
+        autosize: true,
+        symbol: ticker,
+        interval: 'D',
+        timezone: 'America/New_York',
+        theme: theme,
+        style: '1',
+        locale: 'en',
+        toolbar_bg: 'transparent',
+        allow_symbol_change: true,
+        hide_side_toolbar: false,
+        withdateranges: true,
+        details: true,
+        studies: studies,
+        container_id: 'tradingview-chart',
+      });
+    }).catch(err => {
+      container.innerHTML = '<div class="fallback"><h3>Chart unavailable</h3><p>' + err.message + '</p></div>';
+    });
+  }
+
+  function renderIndicatorBar() {
+    const active = loadInds();
+    const bar = document.getElementById('indbar');
+    bar.innerHTML = Object.entries(TV_INDICATOR_GROUPS).map(([group, items]) => {
+      return '<span class="group-lbl">' + group + '</span>' +
+        Object.keys(items).map(name => {
+          const cls = 'ind-btn' + (active.indexOf(name) >= 0 ? ' active' : '');
+          return '<button class="' + cls + '" data-ind="' + name + '">' + name + '</button>';
+        }).join('');
+    }).join('<span style="width:6px"></span>');
+    bar.querySelectorAll('.ind-btn').forEach(btn => {
+      btn.onclick = function () {
+        const name = this.dataset.ind;
+        let arr = loadInds();
+        if (arr.indexOf(name) >= 0) arr = arr.filter(x => x !== name);
+        else arr.push(name);
+        saveInds(arr);
+        renderIndicatorBar();
+        if (currentTicker && !isMutualFundTicker(currentTicker)) renderChart(currentTicker);
+      };
+    });
+  }
+
+  /* Search input — Enter to load any symbol */
+  document.getElementById('search').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      const sym = this.value.trim().toUpperCase();
+      if (sym) { renderChart(sym); this.value = ''; }
+    }
+  });
+
+  /* Theme toggle (local to popup only — doesn't change parent) */
+  document.getElementById('theme-toggle').onclick = function () {
+    const cur = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
+    if (currentTicker && !isMutualFundTicker(currentTicker)) renderChart(currentTicker);
+  };
+
+  document.getElementById('close-btn').onclick = function () { window.close(); };
+
+  /* Expose loadTicker for the parent window to call when a ticker is clicked */
+  window.loadTicker = function (sym) {
+    renderChart(String(sym).toUpperCase().trim());
+  };
+
+  /* Notify opener when closed so it can drop its reference and reset UI */
+  window.addEventListener('beforeunload', function () {
+    try {
+      if (window.opener && !window.opener.closed && typeof window.opener.notifyPopoutClosed === 'function') {
+        window.opener.notifyPopoutClosed();
+      }
+    } catch {}
+  });
+
+  /* Initial render */
+  renderIndicatorBar();
+  renderChart(${JSON.stringify(initialTicker)});
+</script>
+</body>
+</html>`;
+}
+
+/** Called by the popup when it's about to close, so the main page can
+    drop its reference and update the UI (the modal opens for next click). */
+function notifyPopoutClosed() {
+  popoutWin = null;
+  const btn = document.getElementById('chart-popout');
+  if (btn) btn.classList.remove('popped');
+}
+
+/* ----- Global wiring: clicks, Esc, theme changes ----- */
+(function wireChartingGlobals() {
+  /* Close on backdrop click (but not when clicking the modal itself) */
+  document.addEventListener('click', (e) => {
+    const overlay = document.getElementById('chart-overlay');
+    if (e.target === overlay) closeChart();
+  });
+
+  /* Close button */
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'chart-close') closeChart();
+  });
+
+  /* Pop-out button */
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'chart-popout') {
+      e.preventDefault();
+      openChartPopout(currentChartTicker);
+    }
+  });
+
+  /* Modal search input — Enter to load any symbol */
+  document.addEventListener('keydown', (e) => {
+    if (e.target && e.target.id === 'chart-search' && e.key === 'Enter') {
+      const sym = e.target.value.trim().toUpperCase();
+      if (sym) {
+        e.target.value = '';
+        /* Route through openChart so popout takes over if active */
+        openChart(sym);
+      }
+    }
+  });
+
+  /* Esc to close */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('chart-overlay');
+      if (overlay && overlay.classList.contains('open')) closeChart();
+    }
+  });
+
+  /* Delegated click handler: any element with data-ticker (watchlist tiles)
+     or class="ticker" with data-clickable opens the chart.
+     We delegate so it works no matter how often renderWatchlist re-renders. */
+  document.addEventListener('click', (e) => {
+    /* Don't hijack the × remove button or its children */
+    if (e.target.closest('[data-remove]')) return;
+    const tile = e.target.closest('[data-ticker]');
+    if (tile) {
+      e.preventDefault();
+      openChart(tile.dataset.ticker);
+      return;
+    }
+    /* Any element with class="ticker" — used in briefings, alerts, etc. */
+    const inlineTicker = e.target.closest('.ticker');
+    if (inlineTicker) {
+      e.preventDefault();
+      /* Strip any non-ticker chars (extra whitespace, status dots) */
+      const sym = inlineTicker.textContent.trim().split(/\s+/)[0];
+      if (sym) openChart(sym);
+    }
+  });
+
+  /* Re-render chart when the user toggles dark/light so theme matches.
+     We listen on the documentElement for data-theme attribute changes. */
+  const themeObserver = new MutationObserver(() => {
+    if (currentChartTicker && !isMutualFundTicker(currentChartTicker)) {
+      renderChart(currentChartTicker);
+    }
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+
 </body>
 </html>
